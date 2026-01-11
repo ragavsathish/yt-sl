@@ -1,0 +1,7 @@
+too-many-arguments-threshold = 7
+type-complexity-threshold = 250
+single-char-binding-names-threshold = 4
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true
+allow-print-in-tests = true
+doc-valid-idents = ["HelloWorld", "HelloWorld"]
