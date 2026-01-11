@@ -36,19 +36,19 @@ async fn handle_command(
 ) -> Result<Event, Error> {
     // 1. Validate command
     let validated = validate_command(command)?;
-    
+
     // 2. Load current state
     let state = state_loader(validated.id())?;
-    
+
     // 3. Derive event from command + state
     let event = derive_event(validated, state)?;
-    
+
     // 4. Apply event to update state
     let new_state = event_applier(state, event.clone());
-    
+
     // 5. Publish event
     event_publisher(event);
-    
+
     Ok(event)
 }
 ```
@@ -126,13 +126,13 @@ sequenceDiagram
 pub enum ExtractionError {
     #[error("Invalid URL: {0}")]
     InvalidUrl(String),
-    
+
     #[error("Video unavailable: {0}")]
     VideoUnavailable(Id<YouTubeVideo>),
-    
+
     #[error("Download failed after {0} retries")]
     DownloadFailed(u8),
-    
+
     #[error("OCR processing failed: {0}")]
     OcrFailed(String),
 }
@@ -187,7 +187,7 @@ graph TB
     State -->|derive| Event[Event]
     Event -->|apply| NewState[New State]
     Event -->|publish| EventBus[Event Bus]
-    
+
     style Command fill:#e1f5ff
     style Event fill:#fff4e1
     style State fill:#e8f5e9
@@ -238,10 +238,10 @@ pub async fn handle_download_video(
 ) -> DomainResult<VideoDownloaded> {
     // Validate
     let video_id = validate_youtube_url(&command.url)?;
-    
+
     // Execute side effect
     let (path, duration) = downloader.download(&video_id).await?;
-    
+
     // Return event
     Ok(VideoDownloaded {
         video_id,
@@ -519,43 +519,43 @@ pub enum ExtractionError {
     // Input validation
     #[error("Invalid YouTube URL: {0}")]
     InvalidUrl(String),
-    
+
     #[error("Video ID '{0}' is unavailable")]
     VideoUnavailable(Id<YouTubeVideo>),
-    
+
     #[error("Invalid configuration: {0}")]
     InvalidConfig(String),
-    
+
     // Processing failures
     #[error("Download failed after {0} retries: {1}")]
     DownloadFailed(u8, String),
-    
+
     #[error("Frame extraction failed: {0}")]
     FrameExtractionFailed(String),
-    
+
     #[error("Hash computation failed for frame {0}")]
     HashComputationFailed(Id<VideoFrame>),
-    
+
     #[error("OCR failed for slide {0}: {1}")]
     OcrFailed(Id<Slide>, String),
-    
+
     #[error("Markdown generation failed: {0}")]
     MarkdownGenerationFailed(String),
-    
+
     // Output failures
     #[error("No unique slides found")]
     NoUniqueSlidesFound,
-    
+
     #[error("Output directory not writable: {0}")]
     OutputDirectoryNotWritable(PathBuf),
-    
+
     // System failures
     #[error("Insufficient memory: required {0}MB")]
     InsufficientMemory(u64),
-    
+
     #[error("Network timeout after {0:?}")]
     NetworkTimeout(Duration),
-    
+
     #[error("External dependency unavailable: {0}")]
     ExternalDependencyUnavailable(String),
 }
@@ -569,7 +569,7 @@ pub fn validate_url(url: &str) -> Result<Id<YouTubeVideo>, ExtractionError> {
     if !url.starts_with("https://www.youtube.com/") && !url.starts_with("https://youtu.be/") {
         return Err(ExtractionError::InvalidUrl(url.to_string()));
     }
-    
+
     // Extract video ID logic...
     Ok(Id::from_uuid(Uuid::new_v4()))
 }
@@ -581,7 +581,7 @@ pub async fn download_with_retry(
     max_retries: u8,
 ) -> Result<VideoFile, ExtractionError> {
     let mut last_error = None;
-    
+
     for attempt in 1..=max_retries {
         match downloader.download(&video_id).await {
             Ok(file) => return Ok(file),
@@ -591,7 +591,7 @@ pub async fn download_with_retry(
             }
         }
     }
-    
+
     Err(ExtractionError::DownloadFailed(max_retries, last_error.unwrap().to_string()))
 }
 ```
@@ -625,7 +625,7 @@ proptest! {
         let hash2 = compute_hash(&img_data);
         assert_eq!(hash1, hash2);
     }
-    
+
     #[test]
     fn test_similarity_symmetric(hash1_vec in prop::collection::vec(any::<u8>(), 64),
                                   hash2_vec in prop::collection::vec(any::<u8>(), 64)) {
@@ -858,7 +858,7 @@ pub async fn handle_download_video(
     let video_id = command.video_id;
     let (path, duration) = downloader.download(&video_id).await
         .map_err(|e| ExtractionError::DownloadFailed(3, e.to_string()))?;
-    
+
     Ok(VideoDownloaded {
         video_id,
         path,
@@ -926,7 +926,7 @@ pub fn validate_video_url(url: &str) -> Result<Id<YouTubeVideo>, ExtractionError
     if !is_valid_youtube_url(url) {
         return Err(ExtractionError::InvalidUrl(url.to_string()));
     }
-    
+
     Ok(extract_video_id(url))
 }
 
