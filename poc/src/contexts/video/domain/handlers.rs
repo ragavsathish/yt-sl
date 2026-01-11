@@ -1,6 +1,6 @@
 use crate::contexts::video::domain::commands::DownloadVideoCommand;
 use crate::contexts::video::domain::state::VideoDownloaded;
-use crate::shared::domain::{DomainResult, ExtractionError, Id};
+use crate::shared::domain::{DomainResult, ExtractionError};
 
 pub fn handle_download_video(
     command: DownloadVideoCommand,
@@ -25,6 +25,7 @@ pub fn handle_download_video(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::shared::domain::Id;
 
     #[test]
     fn test_handle_download_video_success() {

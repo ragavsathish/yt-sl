@@ -29,6 +29,12 @@ impl<T> Id<T> {
     }
 }
 
+impl<T> Default for Id<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> fmt::Display for Id<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.uuid)
@@ -36,6 +42,7 @@ impl<T> fmt::Display for Id<T> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 struct Test;
 
 #[cfg(test)]

@@ -1,6 +1,5 @@
 use crate::shared::domain::{Id, YouTubeVideo};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DownloadVideoCommand {
@@ -15,6 +14,7 @@ pub struct ValidateUrlCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use uuid::Uuid;
 
     #[test]
     fn test_download_video_command() {

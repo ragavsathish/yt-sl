@@ -1,7 +1,5 @@
 use crate::contexts::video::domain::state::VideoUrlValidated;
 use crate::contexts::video::domain::VideoDownloaded;
-use crate::shared::domain::Id;
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub enum VideoEvent {
@@ -12,6 +10,8 @@ pub enum VideoEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::shared::domain::Id;
+    use uuid::Uuid;
 
     #[test]
     fn test_video_event_url_validated() {
