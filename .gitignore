@@ -1,0 +1,42 @@
+# Rust build artifacts
+/target/
+**/target/
+
+# Cargo.lock - Uncomment if this is an application, keep for libraries
+# Cargo.lock
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Backup files
+*.bak
+*.backup
+
+# Test coverage
+*.profraw
+*.profdata
+
+# Rust Analyzer
+.rust-analyzer/
+
+# Debug symbols
+*.dSYM/
+*.pdb
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
