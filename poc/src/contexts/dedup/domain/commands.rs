@@ -1,13 +1,23 @@
-use crate::shared::domain::{Id, YouTubeVideo};
+use crate::shared::domain::{Id, VideoFrame, YouTubeVideo};
 use serde::{Deserialize, Serialize};
+
+/// Metadata for a frame to be deduplicated.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FrameDedupMetadata {
+    pub frame_id: Id<VideoFrame>,
+    pub frame_number: u32,
+    pub timestamp: f64,
+    pub hash: String,
+    pub frame_path: String,
+}
 
 /// Command to identify unique slides from a set of frames.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdentifyUniqueSlidesCommand {
     /// The ID of the video being processed
     pub video_id: Id<YouTubeVideo>,
-    /// Directory where extracted frames are stored
-    pub frames_dir: String,
+    /// List of frames with their hashes
+    pub frames: Vec<FrameDedupMetadata>,
     /// Directory where unique slides should be preserved
     pub slides_dir: String,
     /// Similarity threshold (0.0 to 1.0)
@@ -32,7 +42,7 @@ impl Default for IdentifyUniqueSlidesCommand {
     fn default() -> Self {
         Self {
             video_id: Id::new(),
-            frames_dir: String::new(),
+            frames: Vec::new(),
             slides_dir: String::new(),
             similarity_threshold: 0.95,
             selection_strategy: SelectionStrategy::Middle,
