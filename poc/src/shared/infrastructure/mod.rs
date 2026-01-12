@@ -1,6 +1,7 @@
 pub mod dependencies;
 pub mod event_bus;
 pub mod logging;
+pub mod memory;
 pub mod output_directory;
 
 pub use dependencies::{
@@ -9,6 +10,9 @@ pub use dependencies::{
 pub use logging::{
     init_default_logging, init_logging, log_debug, log_error_with_context, log_info, log_warning,
     session_span, LogLevel, LoggingConfig, SessionContext,
+};
+pub use memory::{
+    check_memory_sufficient, MemoryMonitor, MemoryUsage, validate_memory_requirement,
 };
 pub use output_directory::{
     get_disk_space, is_directory_writable, validate_output_directory, DiskSpaceInfo,

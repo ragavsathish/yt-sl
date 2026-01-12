@@ -197,9 +197,9 @@ impl MemoryMonitor {
             let usage = self.get_usage();
             let percent = usage.utilization_percent();
             tracing::warn!(
-                current_mb = %usage.current_mb(),
-                threshold_mb = %usage.threshold_mb(),
-                percent = %.1,
+                current_mb = usage.current_mb(),
+                threshold_mb = usage.threshold_mb(),
+                percent = percent,
                 "Memory usage approaching threshold: {:.1}% of {} MB limit",
                 percent,
                 usage.threshold_mb()

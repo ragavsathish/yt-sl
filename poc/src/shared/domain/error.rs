@@ -466,10 +466,10 @@ impl ExtractionError {
 
 pub type DomainResult<T> = Result<T, ExtractionError>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct YouTubeVideo;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct VideoFrame;
 
 #[derive(Debug, Clone)]
