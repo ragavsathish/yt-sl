@@ -10,6 +10,10 @@ use crate::shared::infrastructure::output_directory::validate_output_directory;
 use clap::Parser;
 use std::path::PathBuf;
 
+pub mod progress;
+
+pub use progress::*;
+
 /// Command line arguments for the YouTube Video Slide Extractor.
 ///
 /// This struct defines all command line arguments that can be passed

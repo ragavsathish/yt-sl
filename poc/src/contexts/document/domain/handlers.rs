@@ -3,8 +3,9 @@ use crate::contexts::document::domain::events::DocumentGenerated;
 use crate::shared::domain::{DomainResult, ExtractionError};
 use std::fs;
 use std::path::Path;
+use tera::{Context, Tera};
 
-/// Handles the generate document command.
+/// Handles the generate document command using Tera templates.
 pub fn handle_generate_document(
     command: GenerateDocumentCommand,
 ) -> DomainResult<DocumentGenerated> {
@@ -14,56 +15,71 @@ pub fn handle_generate_document(
         ));
     }
 
-    let mut markdown = String::new();
-    let slide_count = command.slides.len() as u32;
+    let mut tera = Tera::default();
 
-    // Title and Metadata
-    markdown.push_str(&format!("# {}\n\n", command.title));
-    markdown.push_str("## Video Information\n\n");
-    markdown.push_str(&format!("- **URL:** {}\n", command.url));
-    markdown.push_str(&format!("- **Duration:** {} seconds\n", command.duration));
-    markdown.push_str(&format!("- **Extracted Slides:** {}\n\n", slide_count));
+    // Default template
+    let default_template = r#"
+# {{ title }}
 
-    // Timeline Diagram (Mermaid)
-    if command.include_timeline_diagram {
-        markdown.push_str("## Timeline\n\n");
-        markdown.push_str("```mermaid\ngraph LR\n");
-        for slide in &command.slides {
-            let label = format!("Slide {} ({:.0}s)", slide.slide_index, slide.timestamp);
-            markdown.push_str(&format!("    S{}[\"{}\"]\n", slide.slide_index, label));
-            if slide.slide_index > 1 {
-                markdown.push_str(&format!(
-                    "    S{} --> S{}\n",
-                    slide.slide_index - 1,
-                    slide.slide_index
-                ));
-            }
-        }
-        markdown.push_str("```\n\n");
-    }
+## Video Information
 
-    // Slides
-    markdown.push_str("## Slides Detail\n\n");
-    for slide in command.slides {
-        markdown.push_str(&format!("### Slide {}\n\n", slide.slide_index));
-        markdown.push_str(&format!("- **Timestamp:** {:.2}s\n\n", slide.timestamp));
+- **URL:** {{ url }}
+- **Duration:** {{ duration }} seconds
+- **Extracted Slides:** {{ slides | length }}
 
-        // Relative image path for the markdown file
-        let img_path = Path::new(&slide.image_path);
-        let img_name = img_path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("image.jpg");
-        markdown.push_str(&format!("![Slide {}]({})\n\n", slide.slide_index, img_name));
+{% if include_timeline_diagram %}
+## Timeline
 
-        markdown.push_str("#### Extracted Text\n\n");
-        if slide.text.trim().is_empty() {
-            markdown.push_str("*No text detected.*\n\n");
-        } else {
-            markdown.push_str(&format!("{}\n\n", slide.text.trim()));
-        }
-        markdown.push_str("---\n\n");
-    }
+```mermaid
+graph LR
+{% for slide in slides %}
+    S{{ slide.slide_index }}["Slide {{ slide.slide_index }} ({{ slide.timestamp | round }}s)"]
+    {% if not loop.first %}
+    S{{ loop.index0 }} --> S{{ slide.slide_index }}
+    {% endif %}
+{% endfor %}
+```
+{% endif %}
+
+## Slides Detail
+
+{% for slide in slides %}
+### Slide {{ slide.slide_index }}
+
+- **Timestamp:** {{ slide.timestamp | round(precision=2) }}s
+
+![Slide {{ slide.slide_index }}]({{ slide.image_path | split(pat="/") | last }})
+
+#### Extracted Text
+
+{% if slide.text | trim %}
+{{ slide.text | trim }}
+{% else %}
+*No text detected.*
+{% endif %}
+
+---
+{% endfor %}
+"#;
+
+    tera.add_raw_template("default", default_template)
+        .map_err(|e| {
+            ExtractionError::TemplateError(format!("Failed to load default template: {}", e))
+        })?;
+
+    let mut context = Context::new();
+    context.insert("title", &command.title);
+    context.insert("url", &command.url);
+    context.insert("duration", &command.duration);
+    context.insert("slides", &command.slides);
+    context.insert(
+        "include_timeline_diagram",
+        &command.include_timeline_diagram,
+    );
+
+    let rendered = tera
+        .render("default", &context)
+        .map_err(|e| ExtractionError::TemplateError(format!("Failed to render template: {}", e)))?;
 
     // Write to file
     let output_path = Path::new(&command.output_path);
@@ -71,13 +87,13 @@ pub fn handle_generate_document(
         fs::create_dir_all(parent).map_err(|e| ExtractionError::FileSystemError(e.to_string()))?;
     }
 
-    fs::write(output_path, markdown)
+    fs::write(output_path, rendered)
         .map_err(|e| ExtractionError::FileSystemError(e.to_string()))?;
 
     Ok(DocumentGenerated {
         video_id: command.video_id,
         file_path: command.output_path.clone(),
-        slide_count,
+        slide_count: command.slides.len() as u32,
     })
 }
 

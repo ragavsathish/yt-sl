@@ -1,19 +1,21 @@
-use poc::cli::CliArgs;
+use poc::cli::{CliArgs, CliProgressReporter};
 use poc::contexts::session::domain::commands::StartExtractionSessionCommand;
 use poc::contexts::session::infrastructure::orchestrator::SessionOrchestrator;
 use poc::shared::domain::Id;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
 async fn main() {
     // 1. Initialize Logging
+    // Use a simpler format when progress bars are active
     let subscriber = FmtSubscriber::builder()
         .with_max_level(Level::INFO)
+        .with_target(false)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Setting default subscriber failed");
-
-    info!("Starting YouTube Video Slide Extractor...");
 
     // 2. Parse CLI Arguments
     let args = CliArgs::from_args();
@@ -22,7 +24,12 @@ async fn main() {
         std::process::exit(1);
     }
 
-    // 3. Prepare Command
+    info!("Starting YouTube Video Slide Extractor...");
+
+    // 3. Initialize Progress Reporter
+    let progress = Arc::new(Mutex::new(CliProgressReporter::new()));
+
+    // 4. Prepare Command
     let command = StartExtractionSessionCommand {
         session_id: Id::new(),
         youtube_url: args.youtube_url,
@@ -33,16 +40,15 @@ async fn main() {
         languages: args.languages,
     };
 
-    // 4. Run Orchestrator
+    // 5. Run Orchestrator
     info!(
         "Initializing extraction pipeline for session: {}",
         command.session_id
     );
-    match SessionOrchestrator::run_session(command).await {
+    match SessionOrchestrator::run_session(command, Some(progress)).await {
         Ok(event) => {
             info!("Extraction successful!");
             info!("Report generated at: {}", event.file_path);
-            info!("Total unique slides: {}", event.slide_count);
         }
         Err(e) => {
             error!("Extraction failed: {}", e.user_message());

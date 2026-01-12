@@ -1,3 +1,4 @@
+use crate::cli::CliProgressReporter;
 use crate::contexts::dedup::domain::commands::{
     FrameDedupMetadata, IdentifyUniqueSlidesCommand, SelectionStrategy,
 };
@@ -19,6 +20,8 @@ use crate::contexts::video::infrastructure::{AvailabilityChecker, UrlValidator, 
 use crate::shared::domain::{DomainResult, Id};
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tracing::{info, warn};
 
 /// Central orchestrator for the video slide extraction pipeline.
@@ -29,6 +32,7 @@ impl SessionOrchestrator {
     /// Supports session recovery if a session state file exists.
     pub async fn run_session(
         command: StartExtractionSessionCommand,
+        progress: Option<Arc<Mutex<CliProgressReporter>>>,
     ) -> DomainResult<DocumentGenerated> {
         let session_id = command.session_id;
         let session_dir = format!("{}/{}", command.output_dir, session_id);
@@ -62,8 +66,11 @@ impl SessionOrchestrator {
             SessionState::new(session_id.clone())
         };
 
-        // 1. Validate URL & Fetch Metadata (if not already done)
+        // 1. Validate URL & Fetch Metadata
         if state.status == SessionStatus::Starting {
+            if let Some(p) = &progress {
+                p.lock().await.set_stage("Validating URL...");
+            }
             info!("Step 1: Validating URL and fetching metadata...");
             let validator = UrlValidator::new();
             let (url, video_id) = validator.validate_and_extract(&command.youtube_url)?;
@@ -79,14 +86,17 @@ impl SessionOrchestrator {
 
         let metadata = state.video_metadata.as_ref().unwrap().clone();
 
-        // 2. Download Video (if not already done)
+        // 2. Download Video
         if state.status == SessionStatus::MetadataFetched {
+            if let Some(p) = &progress {
+                p.lock().await.set_stage("Downloading video...");
+            }
             info!("Step 2: Downloading video...");
             let url = command.youtube_url.clone();
             let downloader = VideoDownloader::new();
             let download_cmd = DownloadVideoCommand {
                 video_id: Id::new(),
-            }; // Using new ID for local file
+            };
             let download_event = downloader
                 .download_video(download_cmd, &url, &session_dir)
                 .await?;
@@ -97,8 +107,11 @@ impl SessionOrchestrator {
         }
         info!("Video available at: {}", state.video_path.as_ref().unwrap());
 
-        // 3. Extract Frames (if not already done)
+        // 3. Extract Frames
         if state.status == SessionStatus::VideoDownloaded {
+            if let Some(p) = &progress {
+                p.lock().await.set_stage("Extracting frames...");
+            }
             info!(
                 "Step 3: Extracting frames at {}s intervals...",
                 command.frame_interval_secs
@@ -125,11 +138,13 @@ impl SessionOrchestrator {
             state.frames_dir.as_ref().unwrap()
         );
 
-        // 4. Compute Hashes & Identify Unique Slides (always rerun logic for now to keep it simple, but use extracted frames)
+        // 4. Compute Hashes & Identify Unique Slides
         if state.status == SessionStatus::FramesExtracted {
+            if let Some(p) = &progress {
+                p.lock().await.set_stage("Deduplicating slides...");
+            }
             info!("Step 4: Computing hashes and identifying unique slides...");
 
-            // We need to re-scan the frames directory to get the list of frames
             let mut frames_with_hashes = Vec::new();
 
             let entries = fs::read_dir(state.frames_dir.as_ref().unwrap()).map_err(|e| {
@@ -142,6 +157,10 @@ impl SessionOrchestrator {
             let hasher = PerceptualHasher::new();
             let mut entries_vec: Vec<_> = entries.filter_map(Result::ok).collect();
             entries_vec.sort_by_key(|e| e.path());
+
+            if let Some(p) = &progress {
+                p.lock().await.start_progress(entries_vec.len() as u64);
+            }
 
             for (i, entry) in entries_vec.into_iter().enumerate() {
                 let path = entry.path();
@@ -161,6 +180,9 @@ impl SessionOrchestrator {
                         hash: hash_event.hash,
                         frame_path: path.to_str().unwrap().to_string(),
                     });
+                }
+                if let Some(p) = &progress {
+                    p.lock().await.update_progress((i + 1) as u64);
                 }
             }
 
@@ -185,6 +207,9 @@ impl SessionOrchestrator {
 
         // 5. OCR & Generate Document
         if state.status == SessionStatus::UniqueSlidesIdentified {
+            if let Some(p) = &progress {
+                p.lock().await.set_stage("Running OCR on slides...");
+            }
             info!("Step 5: Performing OCR and generating report...");
 
             let mut slides_data = Vec::new();
@@ -197,6 +222,10 @@ impl SessionOrchestrator {
 
             let mut entries_vec: Vec<_> = entries.filter_map(Result::ok).collect();
             entries_vec.sort_by_key(|e| e.path());
+
+            if let Some(p) = &progress {
+                p.lock().await.start_progress(entries_vec.len() as u64);
+            }
 
             for (i, entry) in entries_vec.into_iter().enumerate() {
                 let path = entry.path();
@@ -215,8 +244,14 @@ impl SessionOrchestrator {
                     image_path: path.to_str().unwrap().to_string(),
                     text: ocr_result.text,
                 });
+                if let Some(p) = &progress {
+                    p.lock().await.update_progress((i + 1) as u64);
+                }
             }
 
+            if let Some(p) = &progress {
+                p.lock().await.set_stage("Generating report...");
+            }
             let doc_cmd = GenerateDocumentCommand {
                 video_id: Id::new(),
                 title: metadata.title,
@@ -235,12 +270,19 @@ impl SessionOrchestrator {
         }
 
         // 6. Cleanup
+        if let Some(p) = &progress {
+            p.lock().await.set_stage("Cleaning up...");
+        }
         info!("Step 6: Cleaning up temporary resources...");
         if let Some(video_path) = &state.video_path {
             let _ = fs::remove_file(video_path);
         }
         if let Some(frames_dir) = &state.frames_dir {
             let _ = fs::remove_dir_all(frames_dir);
+        }
+
+        if let Some(p) = &progress {
+            p.lock().await.finish_all();
         }
 
         Ok(DocumentGenerated {
