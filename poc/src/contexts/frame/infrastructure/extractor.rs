@@ -148,7 +148,9 @@ impl FrameExtractor {
             ffmpeg_cmd.arg(format!("{}", (100 - quality) / 10));
         }
 
-        ffmpeg_cmd.arg(&command.output_dir);
+        let output_pattern = Path::new(&command.output_dir)
+            .join(format!("{}_frame_%04d.{}", command.video_id, extension));
+        ffmpeg_cmd.arg(output_pattern);
 
         // Execute FFmpeg
         let output = ffmpeg_cmd.output().map_err(|e| {

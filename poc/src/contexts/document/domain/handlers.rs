@@ -48,7 +48,7 @@ graph LR
 
 - **Timestamp:** {{ slide.timestamp | round(precision=2) }}s
 
-![Slide {{ slide.slide_index }}]({{ slide.image_path | split(pat="/") | last }})
+![Slide {{ slide.slide_index }}](./slides/{{ slide.image_path | split(pat="/") | last }})
 
 #### Extracted Text
 

@@ -768,15 +768,13 @@ mod tests {
         let mut session =
             ProcessingSession::new("https://www.youtube.com/watch?v=test".to_string(), config);
 
-        // Duration should be captured (can be 0 if too fast)
-        let duration = session.duration();
-        assert!(duration >= 0);
+        // Duration should be captured
+        let _duration = session.duration();
 
         // After completion, duration should be captured
         session.start_processing().unwrap();
         session.complete().unwrap();
-        let completed_duration = session.duration();
-        assert!(completed_duration >= 0);
+        let _completed_duration = session.duration();
     }
 
     #[test]

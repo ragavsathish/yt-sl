@@ -200,6 +200,22 @@ impl SessionOrchestrator {
             // Preserve Slide Images
             SlideSelector::preserve_slides(&slide_preserved_events, &frames_with_hashes)?;
 
+            // Save slides metadata to state
+            let mut slides_state = Vec::new();
+            for event in &slide_preserved_events {
+                let frame = frames_with_hashes
+                    .iter()
+                    .find(|f| f.frame_id == event.frame_id)
+                    .unwrap();
+                slides_state.push(crate::contexts::session::domain::state::SlideState {
+                    slide_index: event.slide_index,
+                    timestamp: frame.timestamp,
+                    image_path: event.slide_path.clone(),
+                });
+            }
+            slides_state.sort_by_key(|s| s.slide_index);
+            state.slides = slides_state;
+
             state.slides_dir = Some(slides_dir.clone());
             state.status = SessionStatus::UniqueSlidesIdentified;
             Self::save_state(&state_path, &state)?;
@@ -213,25 +229,15 @@ impl SessionOrchestrator {
             info!("Step 5: Performing OCR and generating report...");
 
             let mut slides_data = Vec::new();
-            let entries = fs::read_dir(state.slides_dir.as_ref().unwrap()).map_err(|e| {
-                crate::shared::domain::ExtractionError::FileSystemError(format!(
-                    "Failed to read slides directory: {}",
-                    e
-                ))
-            })?;
-
-            let mut entries_vec: Vec<_> = entries.filter_map(Result::ok).collect();
-            entries_vec.sort_by_key(|e| e.path());
 
             if let Some(p) = &progress {
-                p.lock().await.start_progress(entries_vec.len() as u64);
+                p.lock().await.start_progress(state.slides.len() as u64);
             }
 
-            for (i, entry) in entries_vec.into_iter().enumerate() {
-                let path = entry.path();
+            for (i, slide_state) in state.slides.iter().enumerate() {
                 let ocr_cmd = ExtractTextCommand {
                     slide_id: Id::new(),
-                    image_path: path.to_str().unwrap().to_string(),
+                    image_path: slide_state.image_path.clone(),
                     languages: command.languages.clone(),
                     confidence_threshold: command.confidence_threshold,
                 };
@@ -239,9 +245,9 @@ impl SessionOrchestrator {
                 let (ocr_result, _) = handle_extract_text(ocr_cmd)?;
 
                 slides_data.push(SlideData {
-                    slide_index: (i + 1) as u32,
-                    timestamp: 0.0, // Should ideally recover from frame metadata
-                    image_path: path.to_str().unwrap().to_string(),
+                    slide_index: slide_state.slide_index,
+                    timestamp: slide_state.timestamp,
+                    image_path: slide_state.image_path.clone(),
                     text: ocr_result.text,
                 });
                 if let Some(p) = &progress {

@@ -14,6 +14,13 @@ pub enum SessionStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SlideState {
+    pub slide_index: u32,
+    pub timestamp: f64,
+    pub image_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionState {
     pub session_id: Id<Session>,
     pub status: SessionStatus,
@@ -22,6 +29,7 @@ pub struct SessionState {
     pub frames_dir: Option<String>,
     pub slides_dir: Option<String>,
     pub report_path: Option<String>,
+    pub slides: Vec<SlideState>,
 }
 
 impl SessionState {
@@ -34,6 +42,7 @@ impl SessionState {
             frames_dir: None,
             slides_dir: None,
             report_path: None,
+            slides: Vec::new(),
         }
     }
 }

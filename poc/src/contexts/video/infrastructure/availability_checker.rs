@@ -34,6 +34,7 @@ pub struct VideoMetadata {
     /// View count
     pub view_count: Option<u64>,
     /// Whether the video is age-restricted
+    #[serde(default)]
     pub age_restricted: bool,
 }
 
