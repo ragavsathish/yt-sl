@@ -7,9 +7,7 @@ pub mod shared;
 pub use cli::CliArgs;
 
 // Session module exports
-pub use session::{
-    ProcessingSession, SessionManager, SessionState, SessionProgress, Session,
-};
+pub use session::{ProcessingSession, Session, SessionManager, SessionProgress, SessionState};
 
 // Shared module exports
 pub use shared::*;

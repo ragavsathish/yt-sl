@@ -43,10 +43,7 @@ pub fn validate_video_url(url: &str) -> DomainResult<VideoUrlValidated> {
     validate_video_id_format(&video_id_str)?;
 
     let video_id: Id<YouTubeVideo> = video_id_str.parse().map_err(|_| {
-        ExtractionError::InvalidUrl(format!(
-            "Invalid video ID format: {}",
-            video_id_str
-        ))
+        ExtractionError::InvalidUrl(format!("Invalid video ID format: {}", video_id_str))
     })?;
 
     Ok(VideoUrlValidated {
@@ -138,9 +135,7 @@ pub fn is_valid_youtube_url(url: &str) -> bool {
 /// Ok(()) if valid, error otherwise
 fn validate_video_id_format(video_id: &str) -> DomainResult<()> {
     if video_id.is_empty() {
-        return Err(ExtractionError::InvalidUrl(
-            "Video ID is empty".to_string(),
-        ));
+        return Err(ExtractionError::InvalidUrl("Video ID is empty".to_string()));
     }
 
     if video_id.len() < 10 || video_id.len() > 12 {
@@ -151,9 +146,8 @@ fn validate_video_id_format(video_id: &str) -> DomainResult<()> {
     }
 
     // YouTube video IDs are typically alphanumeric with some special characters
-    let video_id_regex = VIDEO_ID_REGEX.get_or_init(|| {
-        Regex::new(r"^[a-zA-Z0-9_-]{10,12}$").unwrap()
-    });
+    let video_id_regex =
+        VIDEO_ID_REGEX.get_or_init(|| Regex::new(r"^[a-zA-Z0-9_-]{10,12}$").unwrap());
 
     if !video_id_regex.is_match(video_id) {
         return Err(ExtractionError::InvalidUrl(format!(
@@ -312,7 +306,9 @@ mod tests {
         assert!(is_valid_youtube_url("https://www.youtube.com/watch?v=test"));
         assert!(is_valid_youtube_url("https://youtube.com/watch?v=test"));
         assert!(is_valid_youtube_url("https://m.youtube.com/watch?v=test"));
-        assert!(is_valid_youtube_url("https://music.youtube.com/watch?v=test"));
+        assert!(is_valid_youtube_url(
+            "https://music.youtube.com/watch?v=test"
+        ));
         assert!(is_valid_youtube_url("https://youtu.be/test"));
         assert!(!is_valid_youtube_url("https://example.com/video"));
         assert!(!is_valid_youtube_url("http://www.youtube.com/watch?v=test")); // http not https

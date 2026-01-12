@@ -65,7 +65,9 @@ pub fn handle_download_video(
 /// # Errors
 ///
 /// Returns an error if the URL is invalid
-pub fn handle_validate_url(command: ValidateUrlCommand) -> DomainResult<crate::contexts::video::domain::state::VideoUrlValidated> {
+pub fn handle_validate_url(
+    command: ValidateUrlCommand,
+) -> DomainResult<crate::contexts::video::domain::state::VideoUrlValidated> {
     let validated = validate_video_url(&command.url)?;
     Ok(crate::contexts::video::domain::state::VideoUrlValidated {
         url: validated.url,

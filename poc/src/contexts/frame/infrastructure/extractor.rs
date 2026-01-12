@@ -17,7 +17,7 @@ use crate::contexts::frame::domain::events::{
 };
 use crate::contexts::frame::domain::handlers::handle_extract_frames;
 use crate::contexts::frame::domain::state::{FrameExtracted, FramesExtracted};
-use crate::shared::domain::{DomainResult, ExtractionError, Id, VideoFrame, YouTubeVideo};
+use crate::shared::domain::{DomainResult, ExtractionError, Id, VideoFrame};
 use crate::shared::infrastructure::memory::MemoryMonitor;
 use std::fs;
 use std::path::Path;
@@ -30,6 +30,7 @@ pub struct FrameExtractor {
     /// Memory monitor for tracking memory usage
     memory_monitor: MemoryMonitor,
     /// Maximum allowed memory in bytes
+    #[allow(dead_code)]
     max_memory_bytes: u64,
 }
 
@@ -124,7 +125,7 @@ impl FrameExtractor {
     async fn extract_frames_with_ffmpeg(
         &mut self,
         command: ExtractFramesCommand,
-        duration_sec: u64,
+        _duration_sec: u64,
         total_frames: u32,
     ) -> DomainResult<Vec<FrameExtracted>> {
         let mut frames = Vec::new();
@@ -172,12 +173,8 @@ impl FrameExtractor {
             let timestamp = ((frame_number - 1) as u64 * command.interval_secs) as f64;
 
             // Generate frame path
-            let frame_path = generate_frame_path(
-                &command.output_dir,
-                &video_id,
-                frame_number,
-                extension,
-            );
+            let frame_path =
+                generate_frame_path(&command.output_dir, &video_id, frame_number, extension);
 
             // Check if frame exists and get dimensions
             if Path::new(&frame_path).exists() {
@@ -214,8 +211,7 @@ impl FrameExtractor {
         let img = image::open(frame_path).map_err(|_e| {
             ExtractionError::FrameExtractionFailed(format!(
                 "Failed to open frame {}: {}",
-                frame_path,
-                _e
+                frame_path, _e
             ))
         })?;
 
@@ -232,16 +228,11 @@ impl FrameExtractor {
     ///
     /// Ok(()) if frame is valid, error otherwise
     pub fn validate_frame(frame_path: &str) -> DomainResult<()> {
-        let img = image::open(frame_path).map_err(|_e| {
-            ExtractionError::CorruptFrame {
-                timestamp: 0.0,
-            }
-        })?;
+        let img = image::open(frame_path)
+            .map_err(|_e| ExtractionError::CorruptFrame { timestamp: 0.0 })?;
 
         if img.width() == 0 || img.height() == 0 {
-            return Err(ExtractionError::CorruptFrame {
-                timestamp: 0.0,
-            });
+            return Err(ExtractionError::CorruptFrame { timestamp: 0.0 });
         }
 
         Ok(())
@@ -265,7 +256,7 @@ impl FrameExtractor {
         output_path: &str,
         format: FrameFormat,
     ) -> DomainResult<()> {
-        let extension = match format {
+        let _extension = match format {
             FrameFormat::Jpeg => "jpg",
             FrameFormat::Png => "png",
         };
@@ -283,10 +274,7 @@ impl FrameExtractor {
             .arg(output_path)
             .output()
             .map_err(|e| {
-                ExtractionError::FrameExtractionFailed(format!(
-                    "Failed to extract frame: {}",
-                    e
-                ))
+                ExtractionError::FrameExtractionFailed(format!("Failed to extract frame: {}", e))
             })?;
 
         if !output.status.success() {
@@ -309,7 +297,6 @@ impl Default for FrameExtractor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::contexts::frame::domain::commands::FrameFormat;
 
     #[test]
     fn test_frame_extractor_new() {

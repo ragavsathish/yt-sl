@@ -1,5 +1,5 @@
 use crate::contexts::frame::domain::commands::{ExtractFramesCommand, HashAlgorithm};
-use crate::contexts::frame::domain::state::{FrameExtracted};
+use crate::contexts::frame::domain::state::FrameExtracted;
 use crate::shared::domain::{DomainResult, ExtractionError, Id, VideoFrame, YouTubeVideo};
 use std::path::Path;
 
@@ -29,7 +29,7 @@ pub fn validate_extraction_params(command: &ExtractFramesCommand) -> DomainResul
     }
 
     if let Some(quality) = command.jpeg_quality {
-        if quality < 1 || quality > 100 {
+        if !(1..=100).contains(&quality) {
             return Err(ExtractionError::InvalidConfig(
                 "JPEG quality must be between 1 and 100".to_string(),
             ));
@@ -80,7 +80,10 @@ pub fn generate_frame_path(
     format: &str,
 ) -> String {
     let filename = generate_frame_filename(session_id.clone(), frame_number, format);
-    Path::new(output_dir).join(filename).to_string_lossy().to_string()
+    Path::new(output_dir)
+        .join(filename)
+        .to_string_lossy()
+        .to_string()
 }
 
 /// Creates a FrameExtracted event from frame extraction data.

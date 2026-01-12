@@ -12,7 +12,7 @@ pub use logging::{
     session_span, LogLevel, LoggingConfig, SessionContext,
 };
 pub use memory::{
-    check_memory_sufficient, MemoryMonitor, MemoryUsage, validate_memory_requirement,
+    check_memory_sufficient, validate_memory_requirement, MemoryMonitor, MemoryUsage,
 };
 pub use output_directory::{
     get_disk_space, is_directory_writable, validate_output_directory, DiskSpaceInfo,

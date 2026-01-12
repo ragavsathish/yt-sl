@@ -1,4 +1,4 @@
-use crate::shared::domain::{Id, YouTubeVideo, VideoFrame};
+use crate::shared::domain::{Id, VideoFrame, YouTubeVideo};
 use serde::{Deserialize, Serialize};
 
 /// Command to extract frames from a video.

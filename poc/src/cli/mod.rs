@@ -4,7 +4,7 @@
 //! as specified in US-CLI-01: Parse Command Line Arguments and
 //! US-CLI-04: Validate Input Configuration.
 
-use crate::shared::domain::config::{ExtractionConfig, get_supported_languages};
+use crate::shared::domain::config::{get_supported_languages, ExtractionConfig};
 use crate::shared::domain::error::{DomainResult, ExtractionError};
 use crate::shared::infrastructure::output_directory::validate_output_directory;
 use clap::Parser;
@@ -250,13 +250,19 @@ mod tests {
         let temp_dir = create_temp_dir();
         let args = CliArgs::try_parse_from(vec![
             "yt-sl-extractor",
-            "--url", "https://www.youtube.com/watch?v=test",
-            "--interval", "10.0",
-            "--threshold", "0.9",
-            "--languages", "eng,spa",
+            "--url",
+            "https://www.youtube.com/watch?v=test",
+            "--interval",
+            "10.0",
+            "--threshold",
+            "0.9",
+            "--languages",
+            "eng,spa",
             "--timestamps",
-            "--output", temp_dir.to_str().unwrap(),
-        ]).unwrap();
+            "--output",
+            temp_dir.to_str().unwrap(),
+        ])
+        .unwrap();
 
         assert_eq!(args.youtube_url, "https://www.youtube.com/watch?v=test");
         assert_eq!(args.interval, 10.0);
@@ -387,7 +393,6 @@ mod tests {
             timestamps: true,
             memory_threshold_mb: 600,
             output_dir: temp_dir.clone(),
-            ..Default::default()
         };
 
         let config = args.to_config().unwrap();
@@ -415,12 +420,17 @@ mod tests {
     fn test_cli_args_with_short_options() {
         let args = CliArgs::try_parse_from(vec![
             "yt-sl-extractor",
-            "-u", "https://www.youtube.com/watch?v=test",
-            "-i", "10.0",
-            "-t", "0.9",
-            "-l", "eng,spa",
+            "-u",
+            "https://www.youtube.com/watch?v=test",
+            "-i",
+            "10.0",
+            "-t",
+            "0.9",
+            "-l",
+            "eng,spa",
             "-s",
-        ]).unwrap();
+        ])
+        .unwrap();
 
         assert_eq!(args.youtube_url, "https://www.youtube.com/watch?v=test");
         assert_eq!(args.interval, 10.0);
@@ -431,10 +441,7 @@ mod tests {
 
     #[test]
     fn test_cli_args_missing_required_url() {
-        let result = CliArgs::try_parse_from(vec![
-            "yt-sl-extractor",
-            "--interval", "10.0",
-        ]);
+        let result = CliArgs::try_parse_from(vec!["yt-sl-extractor", "--interval", "10.0"]);
         assert!(result.is_err());
     }
 }

@@ -1,4 +1,4 @@
-use crate::shared::domain::{Id, YouTubeVideo, VideoFrame};
+use crate::shared::domain::{Id, VideoFrame, YouTubeVideo};
 use serde::{Deserialize, Serialize};
 
 /// Event emitted when frames have been extracted from a video.

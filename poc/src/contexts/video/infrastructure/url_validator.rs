@@ -46,9 +46,8 @@ impl UrlValidator {
         }
 
         // Parse the URL
-        let parsed_url = Url::parse(url_str).map_err(|e| {
-            ExtractionError::InvalidUrl(format!("Invalid URL format: {}", e))
-        })?;
+        let parsed_url = Url::parse(url_str)
+            .map_err(|e| ExtractionError::InvalidUrl(format!("Invalid URL format: {}", e)))?;
 
         // Validate that it's a YouTube URL
         if !self.is_youtube_url(&parsed_url) {
@@ -66,10 +65,7 @@ impl UrlValidator {
 
         // Parse video ID as UUID-compatible string
         let video_id: Id<YouTubeVideo> = video_id_str.parse().map_err(|_| {
-            ExtractionError::InvalidUrl(format!(
-                "Invalid video ID format: {}",
-                video_id_str
-            ))
+            ExtractionError::InvalidUrl(format!("Invalid video ID format: {}", video_id_str))
         })?;
 
         Ok((url_str.to_string(), video_id))
@@ -117,13 +113,10 @@ impl UrlValidator {
             let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
 
             // Check for embed, shorts, or v format
-            if segments.len() >= 2 {
-                if segments[0] == "embed"
-                    || segments[0] == "shorts"
-                    || segments[0] == "v"
-                {
-                    return Ok(segments[1].to_string());
-                }
+            if segments.len() >= 2
+                && (segments[0] == "embed" || segments[0] == "shorts" || segments[0] == "v")
+            {
+                return Ok(segments[1].to_string());
             }
 
             Err(ExtractionError::InvalidUrl(
@@ -135,9 +128,7 @@ impl UrlValidator {
     /// Validates the format of a video ID.
     fn validate_video_id_format(&self, video_id: &str) -> DomainResult<()> {
         if video_id.is_empty() {
-            return Err(ExtractionError::InvalidUrl(
-                "Video ID is empty".to_string(),
-            ));
+            return Err(ExtractionError::InvalidUrl("Video ID is empty".to_string()));
         }
 
         if video_id.len() < 10 || video_id.len() > 12 {
@@ -149,9 +140,8 @@ impl UrlValidator {
 
         // YouTube video IDs are typically alphanumeric with some special characters
         // Common pattern: [a-zA-Z0-9_-]{10,12}
-        let video_id_regex = VIDEO_ID_REGEX.get_or_init(|| {
-            Regex::new(r"^[a-zA-Z0-9_-]{10,12}$").unwrap()
-        });
+        let video_id_regex =
+            VIDEO_ID_REGEX.get_or_init(|| Regex::new(r"^[a-zA-Z0-9_-]{10,12}$").unwrap());
 
         if !video_id_regex.is_match(video_id) {
             return Err(ExtractionError::InvalidUrl(format!(
@@ -354,7 +344,11 @@ mod tests {
         let validator = UrlValidator::new();
         assert!(validator.validate_video_id_format("").is_err());
         assert!(validator.validate_video_id_format("short").is_err());
-        assert!(validator.validate_video_id_format("this_is_way_too_long_id").is_err());
-        assert!(validator.validate_video_id_format("invalid@chars!").is_err());
+        assert!(validator
+            .validate_video_id_format("this_is_way_too_long_id")
+            .is_err());
+        assert!(validator
+            .validate_video_id_format("invalid@chars!")
+            .is_err());
     }
 }

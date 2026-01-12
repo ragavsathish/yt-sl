@@ -199,13 +199,9 @@ impl AvailabilityChecker {
                     || error_msg.contains("unavailable")
                 {
                     Ok(AvailabilityStatus::Deleted)
-                } else if error_msg.contains("age")
-                    || error_msg.contains("sign in")
-                {
+                } else if error_msg.contains("age") || error_msg.contains("sign in") {
                     Ok(AvailabilityStatus::AgeRestricted)
-                } else if error_msg.contains("region")
-                    || error_msg.contains("country")
-                {
+                } else if error_msg.contains("region") || error_msg.contains("country") {
                     Ok(AvailabilityStatus::RegionLocked)
                 } else {
                     Ok(AvailabilityStatus::Unavailable(error_msg))
@@ -219,12 +215,7 @@ impl AvailabilityChecker {
         let json_output = timeout(
             self.config.timeout,
             Command::new("yt-dlp")
-                .args([
-                    "--dump-json",
-                    "--no-playlist",
-                    "--no-warnings",
-                    url,
-                ])
+                .args(["--dump-json", "--no-playlist", "--no-warnings", url])
                 .output(),
         )
         .await
@@ -261,18 +252,13 @@ impl AvailabilityChecker {
                 return Err(ExtractionError::VideoRegionLocked);
             }
 
-            return Err(ExtractionError::VideoUnavailable(
-                Id::<YouTubeVideo>::new(),
-            ));
+            return Err(ExtractionError::VideoUnavailable(Id::<YouTubeVideo>::new()));
         }
 
         let stdout = String::from_utf8_lossy(&json_output.stdout);
 
         serde_json::from_str(&stdout).map_err(|e| {
-            ExtractionError::InternalError(format!(
-                "Failed to parse yt-dlp JSON output: {}",
-                e
-            ))
+            ExtractionError::InternalError(format!("Failed to parse yt-dlp JSON output: {}", e))
         })
     }
 
@@ -280,9 +266,7 @@ impl AvailabilityChecker {
     pub async fn check_ytdlp_available(&self) -> DomainResult<()> {
         let result = timeout(
             Duration::from_secs(2),
-            Command::new("yt-dlp")
-                .args(["--version"])
-                .output(),
+            Command::new("yt-dlp").args(["--version"]).output(),
         )
         .await
         .map_err(|_| ExtractionError::NetworkTimeout(Duration::from_secs(2)))?
@@ -396,8 +380,7 @@ mod tests {
 
     #[test]
     fn test_availability_checker_with_config() {
-        let config = AvailabilityCheckerConfig::new()
-            .timeout(Duration::from_secs(10));
+        let config = AvailabilityCheckerConfig::new().timeout(Duration::from_secs(10));
         let checker = AvailabilityChecker::with_config(config);
         assert_eq!(checker.config.timeout, Duration::from_secs(10));
     }
@@ -461,8 +444,14 @@ mod tests {
         assert_eq!(AvailabilityStatus::Available, AvailabilityStatus::Available);
         assert_eq!(AvailabilityStatus::Private, AvailabilityStatus::Private);
         assert_eq!(AvailabilityStatus::Deleted, AvailabilityStatus::Deleted);
-        assert_eq!(AvailabilityStatus::AgeRestricted, AvailabilityStatus::AgeRestricted);
-        assert_eq!(AvailabilityStatus::RegionLocked, AvailabilityStatus::RegionLocked);
+        assert_eq!(
+            AvailabilityStatus::AgeRestricted,
+            AvailabilityStatus::AgeRestricted
+        );
+        assert_eq!(
+            AvailabilityStatus::RegionLocked,
+            AvailabilityStatus::RegionLocked
+        );
         assert_ne!(
             AvailabilityStatus::Available,
             AvailabilityStatus::Unavailable("test".to_string())

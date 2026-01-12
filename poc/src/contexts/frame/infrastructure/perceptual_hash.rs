@@ -12,11 +12,10 @@
 
 use crate::contexts::frame::domain::commands::{ComputeHashCommand, HashAlgorithm};
 use crate::contexts::frame::domain::events::validate_hash_params;
-use crate::contexts::frame::domain::handlers::handle_compute_hash;
 use crate::contexts::frame::domain::state::HashComputed;
-use crate::shared::domain::{DomainResult, ExtractionError, Id};
+use crate::shared::domain::{DomainResult, ExtractionError};
 use ahash::AHasher;
-use image::{DynamicImage, ImageBuffer, Luma};
+use image::{ImageBuffer, Luma};
 use std::hash::Hasher;
 use std::time::Instant;
 
@@ -25,6 +24,7 @@ use std::time::Instant;
 /// This struct handles perceptual hash computation for frame images.
 pub struct PerceptualHasher {
     /// Hash algorithm to use
+    #[allow(dead_code)]
     algorithm: HashAlgorithm,
     /// Hash size (for average and difference hash)
     hash_size: u32,
@@ -87,9 +87,8 @@ impl PerceptualHasher {
         let frame_id = command.frame_id;
 
         // Load the image
-        let img = image::open(&command.frame_path).map_err(|_e| {
-            ExtractionError::HashComputationFailed(frame_id.clone())
-        })?;
+        let img = image::open(&command.frame_path)
+            .map_err(|_e| ExtractionError::HashComputationFailed(frame_id.clone()))?;
 
         // Convert to grayscale
         let gray_img = img.to_luma8();
@@ -188,20 +187,10 @@ impl PerceptualHasher {
     /// The hash as a hexadecimal string
     fn compute_perceptual_hash(&self, img: &ImageBuffer<Luma<u8>, Vec<u8>>) -> String {
         // Resize to 32x32 for DCT approximation
-        let small = image::imageops::resize(
-            img,
-            32,
-            32,
-            image::imageops::FilterType::Lanczos3,
-        );
+        let small = image::imageops::resize(img, 32, 32, image::imageops::FilterType::Lanczos3);
 
         // Simple approximation: use average hash on 8x8 version
-        let tiny = image::imageops::resize(
-            &small,
-            8,
-            8,
-            image::imageops::FilterType::Lanczos3,
-        );
+        let tiny = image::imageops::resize(&small, 8, 8, image::imageops::FilterType::Lanczos3);
 
         // Calculate average pixel value
         let mut sum: u64 = 0;
@@ -297,10 +286,7 @@ impl PerceptualHasher {
     /// # Returns
     ///
     /// A combined hash string
-    pub fn compute_combined_hash(
-        &self,
-        img: &ImageBuffer<Luma<u8>, Vec<u8>>,
-    ) -> String {
+    pub fn compute_combined_hash(&self, img: &ImageBuffer<Luma<u8>, Vec<u8>>) -> String {
         let avg_hash = self.compute_average_hash(img);
         let diff_hash = self.compute_difference_hash(img);
         format!("{}|{}", avg_hash, diff_hash)

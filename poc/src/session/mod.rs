@@ -13,7 +13,9 @@
 use crate::shared::domain::config::ExtractionConfig;
 use crate::shared::domain::error::{DomainResult, ExtractionError};
 use crate::shared::domain::Id;
-use crate::shared::infrastructure::logging::{log_info, log_error_with_context, session_span, Session as LoggingSession};
+use crate::shared::infrastructure::logging::{
+    log_error_with_context, log_info, session_span, Session as LoggingSession,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -348,14 +350,12 @@ impl ProcessingSession {
     /// Returns the duration from creation to completion, or the current
     /// duration if the session is still active.
     pub fn duration(&self) -> u64 {
-        let end = self
-            .completed_at
-            .unwrap_or_else(|| {
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs()
-            });
+        let end = self.completed_at.unwrap_or_else(|| {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs()
+        });
 
         end.saturating_sub(self.created_at)
     }
@@ -373,8 +373,9 @@ impl ProcessingSession {
     /// * `Ok(String)` - JSON representation of the session
     /// * `Err(ExtractionError)` - If serialization fails
     pub fn to_json(&self) -> DomainResult<String> {
-        serde_json::to_string(self)
-            .map_err(|e| ExtractionError::InternalError(format!("Failed to serialize session: {}", e)))
+        serde_json::to_string(self).map_err(|e| {
+            ExtractionError::InternalError(format!("Failed to serialize session: {}", e))
+        })
     }
 
     /// Deserializes a session from JSON.
@@ -388,8 +389,9 @@ impl ProcessingSession {
     /// * `Ok(ProcessingSession)` - Deserialized session
     /// * `Err(ExtractionError)` - If deserialization fails
     pub fn from_json(json: &str) -> DomainResult<Self> {
-        serde_json::from_str(json)
-            .map_err(|e| ExtractionError::InternalError(format!("Failed to deserialize session: {}", e)))
+        serde_json::from_str(json).map_err(|e| {
+            ExtractionError::InternalError(format!("Failed to deserialize session: {}", e))
+        })
     }
 }
 
@@ -431,10 +433,9 @@ impl SessionManager {
         let session = ProcessingSession::new(youtube_url, config);
         let id = session.id;
 
-        let mut sessions = self
-            .sessions
-            .write()
-            .map_err(|e| ExtractionError::InternalError(format!("Failed to acquire write lock: {}", e)))?;
+        let mut sessions = self.sessions.write().map_err(|e| {
+            ExtractionError::InternalError(format!("Failed to acquire write lock: {}", e))
+        })?;
 
         sessions.insert(id, session);
 
@@ -452,15 +453,15 @@ impl SessionManager {
     /// * `Ok(ProcessingSession)` - The session if found
     /// * `Err(ExtractionError)` - If session not found or lock fails
     pub fn get_session(&self, id: Id<Session>) -> DomainResult<ProcessingSession> {
-        let sessions = self
-            .sessions
-            .read()
-            .map_err(|e| ExtractionError::InternalError(format!("Failed to acquire read lock: {}", e)))?;
+        let sessions = self.sessions.read().map_err(|e| {
+            ExtractionError::InternalError(format!("Failed to acquire read lock: {}", e))
+        })?;
 
-        sessions
-            .get(&id)
-            .cloned()
-            .ok_or_else(|| ExtractionError::SessionNotFound(Id::<crate::shared::domain::error::Session>::from_uuid(id.as_uuid())))
+        sessions.get(&id).cloned().ok_or_else(|| {
+            ExtractionError::SessionNotFound(
+                Id::<crate::shared::domain::error::Session>::from_uuid(id.as_uuid()),
+            )
+        })
     }
 
     /// Updates a session.
@@ -478,14 +479,15 @@ impl SessionManager {
     where
         F: FnOnce(&mut ProcessingSession) -> DomainResult<()>,
     {
-        let mut sessions = self
-            .sessions
-            .write()
-            .map_err(|e| ExtractionError::InternalError(format!("Failed to acquire write lock: {}", e)))?;
+        let mut sessions = self.sessions.write().map_err(|e| {
+            ExtractionError::InternalError(format!("Failed to acquire write lock: {}", e))
+        })?;
 
-        let session = sessions
-            .get_mut(&id)
-            .ok_or_else(|| ExtractionError::SessionNotFound(Id::<crate::shared::domain::error::Session>::from_uuid(id.as_uuid())))?;
+        let session = sessions.get_mut(&id).ok_or_else(|| {
+            ExtractionError::SessionNotFound(
+                Id::<crate::shared::domain::error::Session>::from_uuid(id.as_uuid()),
+            )
+        })?;
 
         update_fn(session)?;
 
@@ -503,14 +505,15 @@ impl SessionManager {
     /// * `Ok(ProcessingSession)` - The removed session if found
     /// * `Err(ExtractionError)` - If session not found or lock fails
     pub fn remove_session(&self, id: Id<Session>) -> DomainResult<ProcessingSession> {
-        let mut sessions = self
-            .sessions
-            .write()
-            .map_err(|e| ExtractionError::InternalError(format!("Failed to acquire write lock: {}", e)))?;
+        let mut sessions = self.sessions.write().map_err(|e| {
+            ExtractionError::InternalError(format!("Failed to acquire write lock: {}", e))
+        })?;
 
-        sessions
-            .remove(&id)
-            .ok_or_else(|| ExtractionError::SessionNotFound(Id::<crate::shared::domain::error::Session>::from_uuid(id.as_uuid())))
+        sessions.remove(&id).ok_or_else(|| {
+            ExtractionError::SessionNotFound(
+                Id::<crate::shared::domain::error::Session>::from_uuid(id.as_uuid()),
+            )
+        })
     }
 
     /// Lists all session IDs.
@@ -519,10 +522,9 @@ impl SessionManager {
     ///
     /// A vector of all session IDs.
     pub fn list_sessions(&self) -> DomainResult<Vec<Id<Session>>> {
-        let sessions = self
-            .sessions
-            .read()
-            .map_err(|e| ExtractionError::InternalError(format!("Failed to acquire read lock: {}", e)))?;
+        let sessions = self.sessions.read().map_err(|e| {
+            ExtractionError::InternalError(format!("Failed to acquire read lock: {}", e))
+        })?;
 
         Ok(sessions.keys().copied().collect())
     }
@@ -575,10 +577,9 @@ impl SessionManager {
 
         // Add the recovered session to the manager
         let id = session.id;
-        let mut sessions = self
-            .sessions
-            .write()
-            .map_err(|e| ExtractionError::InternalError(format!("Failed to acquire write lock: {}", e)))?;
+        let mut sessions = self.sessions.write().map_err(|e| {
+            ExtractionError::InternalError(format!("Failed to acquire write lock: {}", e))
+        })?;
 
         sessions.insert(id, session.clone());
 
@@ -644,10 +645,8 @@ mod tests {
     #[test]
     fn test_session_creation() {
         let config = create_test_config();
-        let session = ProcessingSession::new(
-            "https://www.youtube.com/watch?v=test".to_string(),
-            config,
-        );
+        let session =
+            ProcessingSession::new("https://www.youtube.com/watch?v=test".to_string(), config);
 
         assert_eq!(session.state, SessionState::Created);
         assert_eq!(session.youtube_url, "https://www.youtube.com/watch?v=test");
@@ -660,10 +659,8 @@ mod tests {
     #[test]
     fn test_session_start_processing() {
         let config = create_test_config();
-        let mut session = ProcessingSession::new(
-            "https://www.youtube.com/watch?v=test".to_string(),
-            config,
-        );
+        let mut session =
+            ProcessingSession::new("https://www.youtube.com/watch?v=test".to_string(), config);
 
         assert!(session.start_processing().is_ok());
         assert_eq!(session.state, SessionState::Processing);
@@ -672,10 +669,8 @@ mod tests {
     #[test]
     fn test_session_start_processing_invalid_state() {
         let config = create_test_config();
-        let mut session = ProcessingSession::new(
-            "https://www.youtube.com/watch?v=test".to_string(),
-            config,
-        );
+        let mut session =
+            ProcessingSession::new("https://www.youtube.com/watch?v=test".to_string(), config);
 
         session.state = SessionState::Processing;
         assert!(session.start_processing().is_err());
@@ -684,10 +679,8 @@ mod tests {
     #[test]
     fn test_session_complete() {
         let config = create_test_config();
-        let mut session = ProcessingSession::new(
-            "https://www.youtube.com/watch?v=test".to_string(),
-            config,
-        );
+        let mut session =
+            ProcessingSession::new("https://www.youtube.com/watch?v=test".to_string(), config);
 
         session.start_processing().unwrap();
         assert!(session.complete().is_ok());
@@ -698,10 +691,8 @@ mod tests {
     #[test]
     fn test_session_complete_invalid_state() {
         let config = create_test_config();
-        let mut session = ProcessingSession::new(
-            "https://www.youtube.com/watch?v=test".to_string(),
-            config,
-        );
+        let mut session =
+            ProcessingSession::new("https://www.youtube.com/watch?v=test".to_string(), config);
 
         assert!(session.complete().is_err());
     }
@@ -709,10 +700,8 @@ mod tests {
     #[test]
     fn test_session_fail() {
         let config = create_test_config();
-        let mut session = ProcessingSession::new(
-            "https://www.youtube.com/watch?v=test".to_string(),
-            config,
-        );
+        let mut session =
+            ProcessingSession::new("https://www.youtube.com/watch?v=test".to_string(), config);
 
         assert!(session.fail("Test error".to_string()).is_ok());
         assert_eq!(session.state, SessionState::Failed);
@@ -723,10 +712,8 @@ mod tests {
     #[test]
     fn test_session_fail_invalid_state() {
         let config = create_test_config();
-        let mut session = ProcessingSession::new(
-            "https://www.youtube.com/watch?v=test".to_string(),
-            config,
-        );
+        let mut session =
+            ProcessingSession::new("https://www.youtube.com/watch?v=test".to_string(), config);
 
         session.state = SessionState::Completed;
         assert!(session.fail("Test error".to_string()).is_err());
@@ -735,62 +722,68 @@ mod tests {
     #[test]
     fn test_session_update_progress() {
         let config = create_test_config();
-        let mut session = ProcessingSession::new(
-            "https://www.youtube.com/watch?v=test".to_string(),
-            config,
-        );
+        let mut session =
+            ProcessingSession::new("https://www.youtube.com/watch?v=test".to_string(), config);
 
-        session.update_progress("Downloading", 50, 100, Some("Downloading video".to_string()));
+        session.update_progress(
+            "Downloading",
+            50,
+            100,
+            Some("Downloading video".to_string()),
+        );
 
         assert_eq!(session.progress.stage, "Downloading");
         assert_eq!(session.progress.processed, 50);
         assert_eq!(session.progress.total, 100);
         assert_eq!(session.progress.percentage, 0.5);
-        assert_eq!(session.progress.message, Some("Downloading video".to_string()));
+        assert_eq!(
+            session.progress.message,
+            Some("Downloading video".to_string())
+        );
     }
 
     #[test]
     fn test_session_metadata() {
         let config = create_test_config();
-        let mut session = ProcessingSession::new(
-            "https://www.youtube.com/watch?v=test".to_string(),
-            config,
-        );
+        let mut session =
+            ProcessingSession::new("https://www.youtube.com/watch?v=test".to_string(), config);
 
         session.set_metadata("video_title", "Test Video");
         session.set_metadata("video_duration", "300");
 
-        assert_eq!(session.get_metadata("video_title"), Some(&"Test Video".to_string()));
-        assert_eq!(session.get_metadata("video_duration"), Some(&"300".to_string()));
+        assert_eq!(
+            session.get_metadata("video_title"),
+            Some(&"Test Video".to_string())
+        );
+        assert_eq!(
+            session.get_metadata("video_duration"),
+            Some(&"300".to_string())
+        );
         assert_eq!(session.get_metadata("nonexistent"), None);
     }
 
     #[test]
     fn test_session_duration() {
         let config = create_test_config();
-        let mut session = ProcessingSession::new(
-            "https://www.youtube.com/watch?v=test".to_string(),
-            config,
-        );
+        let mut session =
+            ProcessingSession::new("https://www.youtube.com/watch?v=test".to_string(), config);
 
-        // Duration should be at least 0 (very short time)
+        // Duration should be non-zero (very short time)
         let duration = session.duration();
-        assert!(duration >= 0);
+        assert!(duration > 0);
 
         // After completion, duration should be captured
         session.start_processing().unwrap();
         session.complete().unwrap();
         let completed_duration = session.duration();
-        assert!(completed_duration >= 0);
+        assert!(completed_duration > 0);
     }
 
     #[test]
     fn test_session_serialization() {
         let config = create_test_config();
-        let session = ProcessingSession::new(
-            "https://www.youtube.com/watch?v=test".to_string(),
-            config,
-        );
+        let session =
+            ProcessingSession::new("https://www.youtube.com/watch?v=test".to_string(), config);
 
         let json = session.to_json().unwrap();
         let deserialized = ProcessingSession::from_json(&json).unwrap();
@@ -864,7 +857,10 @@ mod tests {
         let config = create_test_config();
 
         let id1 = manager
-            .create_session("https://www.youtube.com/watch?v=test1".to_string(), config.clone())
+            .create_session(
+                "https://www.youtube.com/watch?v=test1".to_string(),
+                config.clone(),
+            )
             .unwrap();
         let id2 = manager
             .create_session("https://www.youtube.com/watch?v=test2".to_string(), config)

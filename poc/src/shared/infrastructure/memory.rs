@@ -9,7 +9,7 @@
 //! - Provide graceful degradation or error messages
 //! - Suggest processing in smaller batches
 
-use crate::shared::domain::error::{ExtractionError, DomainResult};
+use crate::shared::domain::error::{DomainResult, ExtractionError};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -71,7 +71,7 @@ impl MemoryMonitor {
         Self {
             peak_bytes: Arc::new(AtomicU64::new(0)),
             threshold_bytes: 500 * 1024 * 1024, // 500 MB
-            warning_threshold_percent: 0.8, // 80%
+            warning_threshold_percent: 0.8,     // 80%
         }
     }
 
@@ -96,7 +96,7 @@ impl MemoryMonitor {
     /// * `bytes` - Current memory usage in bytes
     pub fn record_usage(&self, bytes: u64) {
         // Update peak if current usage is higher
-        let mut current_peak = self.peak_bytes.load(Ordering::Relaxed);
+        let current_peak = self.peak_bytes.load(Ordering::Relaxed);
         if bytes > current_peak {
             let _ = self.peak_bytes.compare_exchange(
                 current_peak,
@@ -139,8 +139,6 @@ impl MemoryMonitor {
     /// Gets current memory usage on Unix-like systems.
     #[cfg(unix)]
     fn get_current_bytes_unix(&self) -> u64 {
-        use std::fs;
-
         // Read /proc/self/status to get memory info
         if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
             for line in status.lines() {
@@ -258,8 +256,6 @@ fn get_available_memory_mb() -> DomainResult<u64> {
 /// Gets available memory on Unix-like systems.
 #[cfg(unix)]
 fn get_available_memory_unix() -> DomainResult<u64> {
-    use std::fs;
-
     // Read /proc/meminfo to get memory info
     if let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo") {
         for line in meminfo.lines() {
@@ -294,7 +290,7 @@ fn get_available_memory_unix() -> DomainResult<u64> {
             }
         }
 
-        if let (Some(total), Some(available)) = (total_kb, available_kb) {
+        if let (Some(_total), Some(available)) = (total_kb, available_kb) {
             return Ok(available / 1024);
         }
     }
@@ -367,7 +363,9 @@ mod tests {
         monitor.record_usage(200 * 1024 * 1024);
         monitor.record_usage(150 * 1024 * 1024);
 
-        let peak = monitor.peak_bytes.load(std::sync::atomic::Ordering::Relaxed);
+        let peak = monitor
+            .peak_bytes
+            .load(std::sync::atomic::Ordering::Relaxed);
         assert_eq!(peak, 200 * 1024 * 1024);
     }
 
