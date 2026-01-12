@@ -11,13 +11,13 @@
 //! - Handles network errors gracefully
 
 use crate::shared::domain::{DomainResult, ExtractionError, Id, YouTubeVideo};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tokio::process::Command;
 use tokio::time::timeout;
 
 /// Video metadata retrieved from YouTube.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct VideoMetadata {
     /// Video title
     pub title: String,
