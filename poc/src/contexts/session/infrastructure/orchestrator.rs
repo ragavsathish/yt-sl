@@ -16,6 +16,8 @@ use crate::contexts::session::domain::events::DocumentGenerated;
 use crate::contexts::video::domain::commands::DownloadVideoCommand;
 use crate::contexts::video::infrastructure::{AvailabilityChecker, UrlValidator, VideoDownloader};
 use crate::shared::domain::{DomainResult, Id};
+use std::fs;
+use tracing::info;
 
 /// Central orchestrator for the video slide extraction pipeline.
 pub struct SessionOrchestrator;
@@ -32,14 +34,18 @@ impl SessionOrchestrator {
         let doc_path = format!("{}/report.md", session_dir);
 
         // 1. Validate URL
+        info!("Step 1: Validating URL...");
         let validator = UrlValidator::new();
         let (url, video_id) = validator.validate_and_extract(&command.youtube_url)?;
 
         // 2. Check Availability and Get Metadata
+        info!("Step 2: Checking video availability...");
         let checker = AvailabilityChecker::new();
         let metadata = checker.check_availability(&video_id, &url).await?;
+        info!("Video found: '{}' ({}s)", metadata.title, metadata.duration);
 
         // 3. Download Video
+        info!("Step 3: Downloading video...");
         let downloader = VideoDownloader::new();
         let download_cmd = DownloadVideoCommand {
             video_id: video_id.clone(),
@@ -47,8 +53,13 @@ impl SessionOrchestrator {
         let download_event = downloader
             .download_video(download_cmd, &url, &session_dir)
             .await?;
+        info!("Video downloaded to: {}", download_event.path);
 
         // 4. Extract Frames
+        info!(
+            "Step 4: Extracting frames at {}s intervals...",
+            command.frame_interval_secs
+        );
         let mut extractor = FrameExtractor::new();
         let extract_cmd = ExtractFramesCommand {
             video_id: video_id.clone(),
@@ -61,8 +72,10 @@ impl SessionOrchestrator {
         let (_frames_extracted, frames) = extractor
             .extract_frames(extract_cmd, metadata.duration)
             .await?;
+        info!("Extracted {} frames.", frames.len());
 
         // 5. Compute Hashes
+        info!("Step 5: Computing perceptual hashes...");
         let hasher = PerceptualHasher::new();
         let mut frames_with_hashes = Vec::new();
         for frame in frames {
@@ -83,6 +96,7 @@ impl SessionOrchestrator {
         }
 
         // 6. Identify Unique Slides
+        info!("Step 6: Identifying unique slides...");
         let dedup_cmd = IdentifyUniqueSlidesCommand {
             video_id: video_id.clone(),
             frames: frames_with_hashes.clone(),
@@ -91,14 +105,16 @@ impl SessionOrchestrator {
             selection_strategy: SelectionStrategy::Middle,
         };
         let (_dedup_summary, slide_preserved_events) = handle_identify_unique_slides(dedup_cmd)?;
+        info!("Found {} unique slides.", slide_preserved_events.len());
 
         // 7. Preserve Slide Images
+        info!("Step 7: Preserving slide images...");
         SlideSelector::preserve_slides(&slide_preserved_events, &frames_with_hashes)?;
 
         // 8. OCR each slide
+        info!("Step 8: Performing OCR on slides...");
         let mut slides_data = Vec::new();
         for event in slide_preserved_events {
-            // Find timestamp from original frames
             let timestamp = frames_with_hashes
                 .iter()
                 .find(|f| f.frame_id == event.frame_id)
@@ -123,6 +139,7 @@ impl SessionOrchestrator {
         }
 
         // 9. Generate Document
+        info!("Step 9: Generating Markdown report...");
         let doc_cmd = GenerateDocumentCommand {
             video_id: video_id.clone(),
             title: metadata.title,
@@ -134,6 +151,11 @@ impl SessionOrchestrator {
         };
 
         let doc_event = handle_generate_document(doc_cmd)?;
+
+        // 10. Cleanup
+        info!("Step 10: Cleaning up temporary resources...");
+        let _ = fs::remove_file(download_event.path);
+        let _ = fs::remove_dir_all(frames_dir);
 
         Ok(DocumentGenerated {
             video_id,
