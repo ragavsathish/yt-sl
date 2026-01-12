@@ -120,4 +120,28 @@ mod tests {
         let result = handle_identify_unique_slides(command);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_handle_identify_unique_slides_single_frame() {
+        let video_id = Id::<YouTubeVideo>::new();
+        let frames = vec![FrameDedupMetadata {
+            frame_id: Id::<VideoFrame>::new(),
+            frame_number: 1,
+            timestamp: 0.0,
+            hash: "ffff".to_string(),
+            frame_path: "path1".to_string(),
+        }];
+
+        let command = IdentifyUniqueSlidesCommand {
+            video_id: video_id.clone(),
+            frames,
+            slides_dir: "/tmp/slides".to_string(),
+            similarity_threshold: 0.95,
+            selection_strategy: SelectionStrategy::First,
+        };
+
+        let result = handle_identify_unique_slides(command).unwrap();
+        assert_eq!(result.0.slide_count, 1);
+        assert_eq!(result.1.len(), 1);
+    }
 }
