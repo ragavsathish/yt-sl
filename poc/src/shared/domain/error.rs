@@ -148,6 +148,9 @@ pub enum ExtractionError {
     #[error("Template error: {0}")]
     TemplateError(String),
 
+    #[error("File system error: {0}")]
+    FileSystemError(String),
+
     #[error("Internal error: {0}")]
     InternalError(String),
 }
@@ -189,6 +192,7 @@ impl ExtractionError {
             ExtractionError::TooManyCorruptFrames { .. } => ErrorCategory::Processing,
             ExtractionError::LowOcrConfidence { .. } => ErrorCategory::Processing,
             ExtractionError::TemplateError(_) => ErrorCategory::Configuration,
+            ExtractionError::FileSystemError(_) => ErrorCategory::FileSystem,
             ExtractionError::InternalError(_) => ErrorCategory::Unknown,
         }
     }
@@ -444,6 +448,13 @@ impl ExtractionError {
             ExtractionError::TemplateError(reason) => {
                 format!(
                     "Template error: {}. Please check your template syntax and ensure it's valid.",
+                    reason
+                )
+            }
+
+            ExtractionError::FileSystemError(reason) => {
+                format!(
+                    "A file system error occurred: {}. Please check your disk space and permissions.",
                     reason
                 )
             }
