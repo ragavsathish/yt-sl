@@ -69,7 +69,7 @@ pub fn calculate_total_frames(duration_sec: u64, interval_secs: u64) -> u32 {
     }
     let mut count = (duration_sec / interval_secs) as u32;
     // Always include the last frame
-    if duration_sec % interval_secs != 0 {
+    if !duration_sec.is_multiple_of(interval_secs) {
         count += 1;
     }
     count.max(1)
@@ -280,11 +280,11 @@ mod tests {
     #[test]
     fn test_handle_extract_frames_success() {
         use tempfile::NamedTempFile;
-        
+
         // Create a temporary file to simulate a video file
         let temp_file = NamedTempFile::new().unwrap();
         let video_path = temp_file.path().to_str().unwrap().to_string();
-        
+
         let uuid = uuid::Uuid::new_v4();
         let command = ExtractFramesCommand {
             video_id: Id::<YouTubeVideo>::from_uuid(uuid),
@@ -328,7 +328,10 @@ mod tests {
             jpeg_quality: None,
         };
         let result = handle_extract_frames(command, 60);
-        assert!(matches!(result, Err(ExtractionError::FrameExtractionFailed(_))));
+        assert!(matches!(
+            result,
+            Err(ExtractionError::FrameExtractionFailed(_))
+        ));
     }
 
     #[test]

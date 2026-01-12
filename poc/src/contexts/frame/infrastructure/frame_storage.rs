@@ -11,13 +11,14 @@
 //! - Optimize storage for large numbers of frames
 
 use crate::contexts::frame::domain::commands::OptimizeStorageCommand;
-use crate::contexts::frame::domain::handlers::{create_frames_cleaned_event, handle_optimize_storage};
+use crate::contexts::frame::domain::handlers::{
+    create_frames_cleaned_event, handle_optimize_storage,
+};
 use crate::contexts::frame::domain::state::{StorageOptimized, TemporaryFramesCleaned};
-use crate::shared::domain::{DomainResult, ExtractionError, Id, VideoFrame, YouTubeVideo};
+use crate::shared::domain::{DomainResult, ExtractionError, Id, VideoFrame};
 use image::DynamicImage;
 use std::collections::HashMap;
 use std::fs;
-use std::io::Write;
 use std::path::Path;
 
 /// Maximum disk usage for frames in bytes (10GB).
@@ -106,12 +107,8 @@ impl FrameStorageOptimizer {
         };
 
         // Create optimized event
-        let optimized_event = handle_optimize_storage(
-            command.clone(),
-            original_size,
-            optimized_size,
-            frame_count,
-        )?;
+        let optimized_event =
+            handle_optimize_storage(command.clone(), original_size, optimized_size, frame_count)?;
 
         // Clean up temporary frames if requested
         let cleaned_event = if command.cleanup_temp {
@@ -132,10 +129,7 @@ impl FrameStorageOptimizer {
     /// # Returns
     ///
     /// A tuple of (optimized_size_bytes, frame_count)
-    fn compress_frames(
-        &mut self,
-        command: &OptimizeStorageCommand,
-    ) -> DomainResult<(u64, u32)> {
+    fn compress_frames(&mut self, command: &OptimizeStorageCommand) -> DomainResult<(u64, u32)> {
         let entries = fs::read_dir(&command.frames_dir).map_err(|e| {
             ExtractionError::FrameExtractionFailed(format!(
                 "Failed to read frames directory: {}",
@@ -174,10 +168,7 @@ impl FrameStorageOptimizer {
 
                 // Get optimized file size
                 let metadata = fs::metadata(&jpeg_path).map_err(|e| {
-                    ExtractionError::FrameExtractionFailed(format!(
-                        "Failed to get metadata: {}",
-                        e
-                    ))
+                    ExtractionError::FrameExtractionFailed(format!("Failed to get metadata: {}", e))
                 })?;
 
                 total_size += metadata.len();
@@ -190,10 +181,7 @@ impl FrameStorageOptimizer {
             } else if path.extension().and_then(|s| s.to_str()) == Some("jpg") {
                 // Already JPEG, just count it
                 let metadata = fs::metadata(&path).map_err(|e| {
-                    ExtractionError::FrameExtractionFailed(format!(
-                        "Failed to get metadata: {}",
-                        e
-                    ))
+                    ExtractionError::FrameExtractionFailed(format!("Failed to get metadata: {}", e))
                 })?;
                 total_size += metadata.len();
                 frame_count += 1;
@@ -210,12 +198,7 @@ impl FrameStorageOptimizer {
     /// * `img` - The image to save
     /// * `path` - The output path
     /// * `quality` - JPEG quality (1-100)
-    fn save_as_jpeg(
-        &self,
-        img: &DynamicImage,
-        path: &Path,
-        quality: u8,
-    ) -> DomainResult<()> {
+    fn save_as_jpeg(&self, img: &DynamicImage, path: &Path, quality: u8) -> DomainResult<()> {
         let mut output = fs::File::create(path).map_err(|e| {
             ExtractionError::FrameExtractionFailed(format!(
                 "Failed to create file {}: {}",
@@ -224,16 +207,10 @@ impl FrameStorageOptimizer {
             ))
         })?;
 
-        let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(
-            &mut output,
-            quality,
-        );
+        let encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut output, quality);
 
         img.write_with_encoder(encoder).map_err(|e| {
-            ExtractionError::FrameExtractionFailed(format!(
-                "Failed to encode JPEG: {}",
-                e
-            ))
+            ExtractionError::FrameExtractionFailed(format!("Failed to encode JPEG: {}", e))
         })?;
 
         Ok(())
@@ -275,10 +252,7 @@ impl FrameStorageOptimizer {
             // Delete all frame files
             if path.is_file() {
                 let metadata = fs::metadata(&path).map_err(|e| {
-                    ExtractionError::FrameExtractionFailed(format!(
-                        "Failed to get metadata: {}",
-                        e
-                    ))
+                    ExtractionError::FrameExtractionFailed(format!("Failed to get metadata: {}", e))
                 })?;
 
                 space_freed += metadata.len();
@@ -323,25 +297,16 @@ impl FrameStorageOptimizer {
         let mut total_size = 0u64;
 
         for entry in fs::read_dir(dir).map_err(|e| {
-            ExtractionError::FrameExtractionFailed(format!(
-                "Failed to read directory: {}",
-                e
-            ))
+            ExtractionError::FrameExtractionFailed(format!("Failed to read directory: {}", e))
         })? {
             let entry = entry.map_err(|e| {
-                ExtractionError::FrameExtractionFailed(format!(
-                    "Failed to read entry: {}",
-                    e
-                ))
+                ExtractionError::FrameExtractionFailed(format!("Failed to read entry: {}", e))
             })?;
 
             let path = entry.path();
             if path.is_file() {
                 let metadata = fs::metadata(&path).map_err(|e| {
-                    ExtractionError::FrameExtractionFailed(format!(
-                        "Failed to get metadata: {}",
-                        e
-                    ))
+                    ExtractionError::FrameExtractionFailed(format!("Failed to get metadata: {}", e))
                 })?;
                 total_size += metadata.len();
             }
@@ -363,16 +328,10 @@ impl FrameStorageOptimizer {
         let mut count = 0u32;
 
         for entry in fs::read_dir(dir).map_err(|e| {
-            ExtractionError::FrameExtractionFailed(format!(
-                "Failed to read directory: {}",
-                e
-            ))
+            ExtractionError::FrameExtractionFailed(format!("Failed to read directory: {}", e))
         })? {
             let entry = entry.map_err(|e| {
-                ExtractionError::FrameExtractionFailed(format!(
-                    "Failed to read entry: {}",
-                    e
-                ))
+                ExtractionError::FrameExtractionFailed(format!("Failed to read entry: {}", e))
             })?;
 
             let path = entry.path();
@@ -451,7 +410,9 @@ impl Default for FrameStorageOptimizer {
 mod tests {
     use super::*;
     use crate::contexts::frame::domain::events::generate_frame_filename;
+    use crate::shared::domain::YouTubeVideo;
     use image::ImageBuffer;
+    use std::io::Write;
     use tempfile::TempDir;
 
     #[test]
@@ -488,9 +449,7 @@ mod tests {
     fn test_cache_frame() {
         let mut optimizer = FrameStorageOptimizer::new();
         let frame_id = Id::<VideoFrame>::new();
-        let img = DynamicImage::ImageRgb8(
-            ImageBuffer::new(100, 100),
-        );
+        let img = DynamicImage::ImageRgb8(ImageBuffer::new(100, 100));
 
         optimizer.cache_frame(frame_id.clone(), img.clone());
         assert!(optimizer.get_cached_frame(&frame_id).is_some());
@@ -501,22 +460,20 @@ mod tests {
         // Use a cache size that's smaller than the actual image size
         // to ensure eviction occurs when adding second frame
         let mut optimizer = FrameStorageOptimizer::with_cache_size(100); // Very small cache
-        
+
         let frame_id1 = Id::<VideoFrame>::new();
         let frame_id2 = Id::<VideoFrame>::new();
-        let img = DynamicImage::ImageRgb8(
-            ImageBuffer::new(100, 100),
-        );
+        let img = DynamicImage::ImageRgb8(ImageBuffer::new(100, 100));
 
         // Cache first frame and verify size tracking
         optimizer.cache_frame(frame_id1.clone(), img.clone());
         let cache_size_after_first = optimizer.cache_size_bytes();
         assert!(cache_size_after_first > 0);
-        
+
         // Cache second frame
         optimizer.cache_frame(frame_id2.clone(), img);
         let cache_size_after_second = optimizer.cache_size_bytes();
-        
+
         // Cache size should increase (tracking works)
         assert!(cache_size_after_second >= cache_size_after_first);
     }
@@ -525,9 +482,7 @@ mod tests {
     fn test_clear_cache() {
         let mut optimizer = FrameStorageOptimizer::new();
         let frame_id = Id::<VideoFrame>::new();
-        let img = DynamicImage::ImageRgb8(
-            ImageBuffer::new(100, 100),
-        );
+        let img = DynamicImage::ImageRgb8(ImageBuffer::new(100, 100));
 
         optimizer.cache_frame(frame_id.clone(), img.clone());
         assert!(optimizer.get_cached_frame(&frame_id).is_some());
@@ -548,7 +503,9 @@ mod tests {
         fs::File::create(frames_dir.join("not_a_frame.txt")).unwrap();
 
         let optimizer = FrameStorageOptimizer::new();
-        let count = optimizer.count_frames(frames_dir.to_str().unwrap()).unwrap();
+        let count = optimizer
+            .count_frames(frames_dir.to_str().unwrap())
+            .unwrap();
         assert_eq!(count, 2);
     }
 
