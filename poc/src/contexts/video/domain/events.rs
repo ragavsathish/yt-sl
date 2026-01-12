@@ -10,7 +10,8 @@ pub fn validate_video_url(url: &str) -> DomainResult<VideoUrlValidated> {
         return Err(ExtractionError::InvalidUrl(url.to_string()));
     }
 
-    let video_id = Id::<YouTubeVideo>::new();
+    let video_id_str = extract_video_id(url);
+    let video_id: Id<YouTubeVideo> = video_id_str.parse().unwrap();
     Ok(VideoUrlValidated {
         url: url.to_string(),
         video_id,

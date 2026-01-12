@@ -2,8 +2,9 @@
 /target/
 **/target/
 
-# Cargo.lock - Uncomment if this is an application, keep for libraries
-# Cargo.lock
+# Cargo.lock - Ignore workspace members, keep workspace root
+**/Cargo.lock
+!/Cargo.lock
 
 # IDE and editor files
 .idea/

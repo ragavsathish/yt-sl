@@ -1,3 +1,4 @@
 [workspace]
 members = ["poc"]
 resolver = "2"
+rust-version = "1.70.0"

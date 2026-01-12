@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
+use std::str::FromStr;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -29,6 +32,21 @@ impl<T> Id<T> {
     }
 }
 
+impl<T> FromStr for Id<T> {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        s.hash(&mut hasher);
+        let hash = hasher.finish();
+        let uuid = Uuid::from_u64_pair(hash, 0);
+        Ok(Id {
+            uuid,
+            _marker: PhantomData,
+        })
+    }
+}
+
 impl<T> Default for Id<T> {
     fn default() -> Self {
         Self::new()
@@ -41,7 +59,7 @@ impl<T> fmt::Display for Id<T> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[allow(dead_code)]
 struct Test;
 
@@ -71,16 +89,9 @@ mod tests {
     }
 
     #[test]
-    fn test_id_clone() {
-        let id1: Id<Test> = Id::new();
-        let id2 = id1.clone();
-        assert_eq!(id1, id2);
-    }
-
-    #[test]
     fn test_id_copy() {
         let id1: Id<Test> = Id::new();
         let id2 = id1;
-        assert_eq!(id2, id2);
+        assert_eq!(id1, id2);
     }
 }
