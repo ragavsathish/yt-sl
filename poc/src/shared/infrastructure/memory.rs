@@ -8,7 +8,7 @@
 //! - Detect low memory conditions
 //! - Provide graceful degradation or error messages
 //! - Suggest processing in smaller batches
-
+//!
 use crate::shared::domain::error::{DomainResult, ExtractionError};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -371,29 +371,33 @@ mod tests {
 
     #[test]
     fn test_exceeds_threshold() {
-        let monitor = MemoryMonitor::new();
+        let monitor = MemoryMonitor::with_threshold(1000, 0.8);
         monitor.record_usage(600 * 1024 * 1024);
 
+        // Should NOT exceed 1000MB
         assert!(!monitor.exceeds_threshold());
 
-        monitor.record_usage(600 * 1024 * 1024 + 1);
+        monitor.record_usage(1200 * 1024 * 1024);
+        // SHOULD exceed 1000MB
         assert!(monitor.exceeds_threshold());
     }
 
     #[test]
     fn test_approaching_threshold() {
-        let monitor = MemoryMonitor::new();
+        let monitor = MemoryMonitor::with_threshold(1000, 0.5);
         monitor.record_usage(400 * 1024 * 1024);
 
-        assert!(monitor.approaching_threshold());
-
-        monitor.record_usage(300 * 1024 * 1024);
+        // Should NOT approach (400 < 500)
         assert!(!monitor.approaching_threshold());
+
+        monitor.record_usage(600 * 1024 * 1024);
+        // SHOULD approach (600 > 500)
+        assert!(monitor.approaching_threshold());
     }
 
     #[test]
     fn test_validate_success() {
-        let monitor = MemoryMonitor::new();
+        let monitor = MemoryMonitor::with_threshold(1000, 0.8);
         monitor.record_usage(400 * 1024 * 1024);
 
         let result = monitor.validate();
@@ -402,7 +406,7 @@ mod tests {
 
     #[test]
     fn test_validate_failure() {
-        let monitor = MemoryMonitor::new();
+        let monitor = MemoryMonitor::with_threshold(500, 0.8);
         monitor.record_usage(600 * 1024 * 1024);
 
         let result = monitor.validate();
