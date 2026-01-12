@@ -4,7 +4,7 @@
 set -e
 
 REPO="ragavsathish/yt-sl"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 BINARY_NAME="yt-sl-extractor"
 
 echo "🚀 Installing YouTube Video Slide Extractor..."
