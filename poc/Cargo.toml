@@ -16,6 +16,10 @@ tracing-appender = "0.2"
 os_info = "3.7"
 rustc_version = "0.4"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 proptest = "1.4"
 pretty_assertions = "1.4"
+tempfile = "3.10"
