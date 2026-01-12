@@ -244,7 +244,7 @@ impl OutputDirectoryValidator {
 /// # Example
 ///
 /// ```no_run
-/// use poc::shared::infrastructure::output_directory::validate_output_directory;
+/// use yt_sl_extractor::shared::infrastructure::output_directory::validate_output_directory;
 /// use std::path::PathBuf;
 ///
 /// let output_dir = PathBuf::from("./output");

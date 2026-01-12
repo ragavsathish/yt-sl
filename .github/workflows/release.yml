@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build - ${{ matrix.platform.os }} - ${{ matrix.platform.target }}
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      matrix:
+        platform:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            name: yt-sl-extractor-linux-x86_64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            name: yt-sl-extractor-macos-x86_64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            name: yt-sl-extractor-macos-arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            name: yt-sl-extractor-windows-x86_64.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Build
+        run: cargo build --release --package yt-sl-extractor --target ${{ matrix.platform.target }}
+
+      - name: Prepare Binary
+        shell: bash
+        run: |
+          if [ "${{ matrix.platform.os }}" = "windows-latest" ]; then
+            mv target/${{ matrix.platform.target }}/release/yt-sl-extractor.exe ${{ matrix.platform.name }}
+          else
+            mv target/${{ matrix.platform.target }}/release/yt-sl-extractor ${{ matrix.platform.name }}
+          fi
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform.name }}
+          path: ${{ matrix.platform.name }}
+
+  create-release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            yt-sl-extractor-linux-x86_64/yt-sl-extractor-linux-x86_64
+            yt-sl-extractor-macos-x86_64/yt-sl-extractor-macos-x86_64
+            yt-sl-extractor-macos-arm64/yt-sl-extractor-macos-arm64
+            yt-sl-extractor-windows-x86_64.exe/yt-sl-extractor-windows-x86_64.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

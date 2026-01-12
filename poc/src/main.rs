@@ -1,11 +1,11 @@
-use poc::cli::{CliArgs, CliProgressReporter};
-use poc::contexts::session::domain::commands::StartExtractionSessionCommand;
-use poc::contexts::session::infrastructure::orchestrator::SessionOrchestrator;
-use poc::shared::domain::Id;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
+use yt_sl_extractor::cli::{CliArgs, CliProgressReporter};
+use yt_sl_extractor::contexts::session::domain::commands::StartExtractionSessionCommand;
+use yt_sl_extractor::contexts::session::infrastructure::orchestrator::SessionOrchestrator;
+use yt_sl_extractor::shared::domain::Id;
 
 #[tokio::main]
 async fn main() {

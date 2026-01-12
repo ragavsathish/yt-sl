@@ -317,7 +317,7 @@ fn get_available_memory_unix() -> DomainResult<u64> {
 /// # Example
 ///
 /// ```no_run
-/// use poc::shared::infrastructure::memory::check_memory_sufficient;
+/// use yt_sl_extractor::shared::infrastructure::memory::check_memory_sufficient;
 ///
 /// let monitor = check_memory_sufficient(500, Some(600)).unwrap();
 /// ```

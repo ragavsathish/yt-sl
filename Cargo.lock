@@ -1412,36 +1412,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "poc"
-version = "0.1.0"
-dependencies = [
- "ahash",
- "async-trait",
- "clap",
- "image",
- "imageproc",
- "indicatif",
- "libc",
- "os_info",
- "pretty_assertions",
- "proptest",
- "rand 0.8.5",
- "regex",
- "rustc_version",
- "serde",
- "serde_json",
- "tempfile",
- "tera",
- "thiserror 1.0.69",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "url",
- "uuid",
-]
-
-[[package]]
 name = "portable-atomic"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2565,6 +2535,36 @@ dependencies = [
  "quote",
  "syn",
  "synstructure",
+]
+
+[[package]]
+name = "yt-sl-extractor"
+version = "0.1.0"
+dependencies = [
+ "ahash",
+ "async-trait",
+ "clap",
+ "image",
+ "imageproc",
+ "indicatif",
+ "libc",
+ "os_info",
+ "pretty_assertions",
+ "proptest",
+ "rand 0.8.5",
+ "regex",
+ "rustc_version",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tera",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "url",
+ "uuid",
 ]
 
 [[package]]

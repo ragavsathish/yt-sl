@@ -13,29 +13,29 @@ The project follows a **Domain-Driven Design (DDD)** approach with bounded conte
 
 ### Build and Check
 ```bash
-cargo build -p poc
-cargo check -p poc
+cargo build -p yt-sl-extractor
+cargo check -p yt-sl-extractor
 ```
 
 ### Testing
-Run all tests in the `poc` crate:
+Run all tests in the `yt-sl-extractor` crate:
 ```bash
-cargo test -p poc
+cargo test -p yt-sl-extractor
 ```
 
 Run tests for a specific context:
 ```bash
-cargo test -p poc --lib contexts::frame
+cargo test -p yt-sl-extractor --lib contexts::frame
 ```
 
 Run a single specific test:
 ```bash
-cargo test -p poc --lib contexts::dedup::infrastructure::comparer::tests::test_calculate_similarity_identical
+cargo test -p yt-sl-extractor --lib contexts::dedup::infrastructure::comparer::tests::test_calculate_similarity_identical
 ```
 
 ### Linting
 ```bash
-cargo clippy -p poc --all-targets --all-features -- -D warnings
+cargo clippy -p yt-sl-extractor --all-targets --all-features -- -D warnings
 cargo fmt --all -- --check
 ```
 

@@ -30,22 +30,38 @@ This tool relies on several external dependencies that must be available in your
 
 ## 📦 Installation
 
+### Option 1: Quick Install (Recommended)
+
+Run the following command in your terminal:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/your-repo/yt-sl-extractor/main/install.sh | bash
+```
+
+### Option 2: Build from Source
+
 Clone the repository and build the project using Cargo:
 
 ```bash
 git clone https://github.com/your-repo/yt-sl-extractor.git
-cd yt-sl-extractor/poc
+cd yt-sl-extractor
 cargo build --release
 ```
 
-The binary will be available at `./target/release/poc`.
+The binary will be available at `./target/release/yt-sl-extractor`.
 
 ## 📖 Usage
 
-### Basic Command
+### Using the installed binary
 
 ```bash
-cargo run -p poc -- --url "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --output "./output"
+yt-sl-extractor --url "https://www.youtube.com/watch?v=UF4krOvbeaw" --output "./output"
+```
+
+### Using Cargo
+
+```bash
+cargo run -p yt-sl-extractor -- --url "https://www.youtube.com/watch?v=UF4krOvbeaw" --output "./output"
 ```
 
 ### Advanced Options
@@ -66,7 +82,7 @@ Options:
 ### Example: High-Precision Extraction with Multiple Languages
 
 ```bash
-cargo run -p poc -- \
+cargo run -p yt-sl-extractor -- \
   --url "https://www.youtube.com/watch?v=..." \
   --interval 2.0 \
   --threshold 0.95 \

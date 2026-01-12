@@ -202,7 +202,7 @@ impl LoggingConfig {
 /// # Example
 ///
 /// ```no_run
-/// use poc::shared::infrastructure::logging::{init_logging, LoggingConfig, LogLevel};
+/// use yt_sl_extractor::shared::infrastructure::logging::{init_logging, LoggingConfig, LogLevel};
 ///
 /// let config = LoggingConfig::new()
 ///     .console_level(LogLevel::Info)
