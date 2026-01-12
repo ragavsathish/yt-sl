@@ -10,6 +10,11 @@ serde_json = "1.0"
 thiserror = "1.0"
 tokio = { version = "1.35", features = ["macros", "rt-multi-thread"] }
 async-trait = "0.1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-appender = "0.2"
+os_info = "3.7"
+rustc_version = "0.4"
 
 [dev-dependencies]
 proptest = "1.4"
