@@ -22,7 +22,7 @@
 
 ### Core Flow
 ```
-User Request → Download Video → Extract Frames → Hash & Deduplicate → OCR → Export Markdown
+User Request → Download Video → Extract Audio → Transcribe Audio → Extract Frames → Hash & Deduplicate → OCR → Export Markdown
 ```
 
 ### State Machine
@@ -41,7 +41,8 @@ CREATED → DOWNLOADING → EXTRACTING → PROCESSING → GENERATING → COMPLET
 
 ### External Dependencies
 - **yt-dlp**: Video downloading
-- **FFmpeg**: Frame extraction
+- **FFmpeg**: Frame extraction, audio extraction
+- **Whisper**: Audio transcription
 - **Tesseract**: OCR processing
 - **Tera/Handlebars**: Markdown templating
 
@@ -52,7 +53,9 @@ CREATED → DOWNLOADING → EXTRACTING → PROCESSING → GENERATING → COMPLET
 | Event | Trigger | Handler |
 |-------|---------|---------|
 | `VideoURLValidated` | CLI receives URL | URL Validator |
-| `VideoDownloaded` | Download completes | Frame Extractor |
+| `VideoDownloaded` | Download completes | Audio Extractor |
+| `AudioExtracted` | Audio extraction completes | Transcription Service |
+| `TextTranscribed` | Transcription completes | Frame Extractor |
 | `FrameExtracted` | Frame captured | Deduplication Engine |
 | `UniqueFrameIdentified` | Slide determined unique | OCR Engine |
 | `TextExtractedFromSlide` | OCR completes | Document Generator |
@@ -64,6 +67,7 @@ sequenceDiagram
     participant User
     participant CLI
     participant VideoAcquisition
+    participant Transcription
     participant FrameProcessing
     participant Deduplication
     participant OCR
@@ -75,6 +79,10 @@ sequenceDiagram
     CLI->>VideoAcquisition: VIDEO_DOWNLOAD_STARTED
     VideoAcquisition->>FileSystem: Save video
     VideoAcquisition-->>CLI: VIDEO_DOWNLOADED
+    CLI->>Transcription: AUDIO_EXTRACTION_STARTED
+    Transcription->>FileSystem: Extract audio WAV
+    Transcription->>Transcription: TRANSCRIBE_AUDIO
+    Transcription-->>CLI: TEXT_TRANSCRIBED
     CLI->>FrameProcessing: FRAME_EXTRACTION_STARTED
     loop For each frame interval
         FrameProcessing->>FrameProcessing: FRAME_EXTRACTED
@@ -274,6 +282,13 @@ graph TB
         V4[YouTube Adapter]
     end
 
+    subgraph TRANSCRIPTION["TRANSCRIPTION"]
+        T1[Audio Extractor]
+        T2[Whisper Service]
+        T3[Model Manager]
+        T4[FFmpeg Adapter]
+    end
+
     subgraph FRAME["FRAME PROCESSING"]
         F1[Frame Extractor]
         F2[Video Decoder]
@@ -304,12 +319,16 @@ graph TB
 
     CLI -->|Customer-Supplier| SESSION
     SESSION -->|Coordinates| VIDEO
+    SESSION -->|Coordinates| TRANSCRIPTION
     SESSION -->|Coordinates| FRAME
     SESSION -->|Coordinates| DEDUP
     SESSION -->|Coordinates| OCR
     SESSION -->|Coordinates| DOC
 
-    VIDEO -->|VideoFile| FRAME
+    VIDEO -->|VideoFile| TRANSCRIPTION
+    TRANSCRIPTION -->|WAV Audio| TRANSCRIPTION
+    TRANSCRIPTION -->|TranscribedText| DOC
+    TRANSCRIPTION -->|VideoFile| FRAME
     FRAME -->|Frames & Hashes| DEDUP
     DEDUP -->|Unique Slides| OCR
     OCR -->|Slides + Text| DOC
@@ -317,6 +336,7 @@ graph TB
     style CLI fill:#e1f5ff
     style SESSION fill:#fff4e1
     style VIDEO fill:#e8f5e9
+    style TRANSCRIPTION fill:#ffd700
     style FRAME fill:#f3e5f5
     style DEDUP fill:#fce4ec
     style OCR fill:#fff9c4
@@ -330,6 +350,7 @@ graph TB
 | **CLI Interface** | Rust | User interaction, command parsing | CLICommand, UserArguments, ProgressDisplay, UserFeedback | clap, indicatif | CommandInterpreter |
 | **Session Management** | Rust | Orchestration, state management, error handling | ProcessingSession, SessionState, SessionProgress, ExecutionContext | tokio, tracing | SessionOrchestrator |
 | **Video Acquisition** | Rust | YouTube interaction, video downloading | VideoURL, VideoMetadata, DownloadRequest, VideoFile | yt-dlp, HTTP clients | YouTubeVideoAdapter |
+| **Transcription** | Rust | Audio extraction, speech-to-text | AudioFile, TranscriptText, TranscriptionConfig, ModelDownload | FFmpeg, whisper-rs | TranscriptionService |
 | **Frame Processing** | Rust | Frame extraction, image processing | VideoStream, Frame, FrameTimestamp, ExtractionSettings | FFmpeg, imageproc | FFmpegAdapter |
 | **Deduplication** | Rust | Slide identification, duplicate removal | PerceptualHash, HashSimilarity, UniquenessThreshold, SlideCandidate | image_hash | HashingEngine |
 | **Text Recognition** | Rust | OCR processing, text extraction | SlideImage, ExtractedText, OCRConfidence, LanguageDetection | Tesseract, tesseract-rs | OCREngineAdapter |
@@ -485,11 +506,20 @@ graph TB
 - AND partial files are cleaned up
 
 **Story 5: System handles missing external dependencies**
-- GIVEN FFmpeg is not installed on the system
-- WHEN the user runs the extraction command
+- GIVEN FFmpeg is not installed on system
+- WHEN user runs extraction command
 - THEN a helpful error message is displayed
 - AND installation instructions are provided
-- AND the application exits gracefully
+- AND application exits gracefully
+
+**Story 6: User transcribes audio from YouTube video**
+- GIVEN a video has been downloaded
+- AND Whisper model is available
+- WHEN user runs extraction with transcription enabled
+- THEN audio is extracted from the video
+- AND audio is transcribed using Whisper (Small model, English)
+- AND transcription text is included in Markdown document
+- AND transcription is completed within performance targets (10-minute video < 1 min transcription)
 
 ### Test Cases
 
@@ -705,6 +735,7 @@ mockall = "0.11"                                      # Mocking
 - Extract unique slides from YouTube videos (95% accuracy)
 - Generate Markdown with embedded images
 - Extract text via OCR (80%+ accuracy on clear text)
+- Transcribe audio from YouTube videos (English, Whisper Small model)
 - Handle videos up to 4 hours length
 - Process at 1GB RAM maximum
 
@@ -784,6 +815,8 @@ graph TB
     subgraph Pipeline["Processing Pipeline"]
         direction TB
         Download[Video Downloader<br/>yt-dlp]
+        AudioExtract[Audio Extractor<br/>FFmpeg]
+        Transcribe[Whisper Transcriber<br/>whisper-rs]
         Extract[Frame Extractor<br/>FFmpeg]
         Hash[Perceptual Hasher<br/>dHash/aHash]
         Dedup[Slide Deduplicator]
@@ -798,7 +831,10 @@ graph TB
     Pipeline -->|events| State
     Progress --> User
 
-    Download -->|VideoFile| Extract
+    Download -->|VideoFile| AudioExtract
+    AudioExtract -->|WAV Audio| Transcribe
+    Transcribe -->|TranscribedText| Export
+    AudioExtract -->|VideoFile| Extract
     Extract -->|Frames| Hash
     Hash -->|Hashes| Dedup
     Dedup -->|UniqueSlides| OCR
@@ -820,6 +856,9 @@ graph TB
 3. OCR text below confidence threshold is flagged
 4. All temporary files are cleaned up on completion/failure
 5. Output directory must be writable before processing starts
+6. Audio must be extracted to 16kHz mono WAV format for Whisper compatibility
+7. Whisper model is cached locally after first download
+8. Transcription continues with warning if audio extraction fails (non-blocking)
 
 ---
 
