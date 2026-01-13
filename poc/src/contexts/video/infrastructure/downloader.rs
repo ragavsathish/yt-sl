@@ -1,38 +1,80 @@
-use crate::shared::domain::{Id, YouTubeVideo};
-use async_trait::async_trait;
+//! Video downloader infrastructure using yt-dlp.
+//!
+//! This module provides video download functionality as specified in US-VIDEO-02:
+//! Download Video.
 
-#[async_trait]
-pub trait VideoDownloader: Send + Sync {
-    async fn download(
+use crate::contexts::video::domain::commands::DownloadVideoCommand;
+use crate::contexts::video::domain::state::VideoDownloaded;
+use crate::shared::domain::{DomainResult, ExtractionError};
+use std::path::Path;
+use tokio::process::Command;
+
+/// Video downloader using yt-dlp.
+pub struct VideoDownloader;
+
+impl VideoDownloader {
+    pub fn new() -> Self {
+        Self
+    }
+
+    /// Downloads a video from YouTube.
+    pub async fn download_video(
         &self,
-        video_id: &Id<YouTubeVideo>,
-    ) -> Result<(String, u64), Box<dyn std::error::Error>>;
-}
+        command: DownloadVideoCommand,
+        url: &str,
+        output_dir: &str,
+    ) -> DomainResult<VideoDownloaded> {
+        let video_path = format!("{}/{}.mp4", output_dir, command.video_id);
 
-pub struct MockVideoDownloader;
+        if let Some(parent) = Path::new(&video_path).parent() {
+            std::fs::create_dir_all(parent).map_err(|e| {
+                ExtractionError::FileSystemError(format!(
+                    "Failed to create output directory: {}",
+                    e
+                ))
+            })?;
+        }
 
-#[async_trait]
-impl VideoDownloader for MockVideoDownloader {
-    async fn download(
-        &self,
-        _video_id: &Id<YouTubeVideo>,
-    ) -> Result<(String, u64), Box<dyn std::error::Error>> {
-        Ok(("/tmp/mock_video.mp4".to_string(), 180))
+        // Execute yt-dlp
+        // -f mp4: preferred format
+        // -o: output path
+        let output = Command::new("yt-dlp")
+            .args([
+                "-f",
+                "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+                "-o",
+                &video_path,
+                url,
+            ])
+            .output()
+            .await
+            .map_err(|e| {
+                ExtractionError::ExternalDependencyUnavailable(format!(
+                    "yt-dlp execution failed: {}",
+                    e
+                ))
+            })?;
+
+        if !output.status.success() {
+            return Err(ExtractionError::DownloadFailed(
+                0,
+                String::from_utf8_lossy(&output.stderr).to_string(),
+            ));
+        }
+
+        Ok(VideoDownloaded {
+            video_id: command.video_id,
+            path: video_path,
+            duration_sec: 0,
+            width: 1920,
+            height: 1080,
+            file_size: 0,
+        })
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_mock_downloader() {
-        let downloader = MockVideoDownloader;
-        let video_id = Id::new();
-        let result = downloader.download(&video_id).await;
-        assert!(result.is_ok());
-        let (path, duration) = result.unwrap();
-        assert_eq!(path, "/tmp/mock_video.mp4");
-        assert_eq!(duration, 180);
+impl Default for VideoDownloader {
+    fn default() -> Self {
+        Self::new()
     }
 }

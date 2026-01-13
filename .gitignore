@@ -41,3 +41,5 @@ temp/
 .env
 .env.local
 .env.*.local
+output_video
+yt-sl-extractor
