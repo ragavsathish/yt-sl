@@ -9,15 +9,23 @@ BINARY_NAME="yt-sl-extractor"
 
 echo "🚀 Installing YouTube Video Slide Extractor..."
 
-# Check dependencies
+# Determine OS and Architecture
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m)
+
+# Check dependencies and suggest OS-specific installation commands
 check_dep() {
     if ! command -v "$1" &> /dev/null; then
         echo "❌ Error: $1 is not installed."
-        case "$1" in
-            yt-dlp) echo "   Install with: brew install yt-dlp" ;;
-            ffmpeg) echo "   Install with: brew install ffmpeg" ;;
-            tesseract) echo "   Install with: brew install tesseract" ;;
-        esac
+        if [ "$OS" = "darwin" ]; then
+            echo "   Install with: brew install $1"
+        elif [ "$OS" = "linux" ]; then
+            case "$1" in
+                yt-dlp) echo "   Install with: sudo wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp && sudo chmod a+rx /usr/local/bin/yt-dlp" ;;
+                ffmpeg) echo "   Install with: sudo apt update && sudo apt install ffmpeg" ;;
+                tesseract) echo "   Install with: sudo apt update && sudo apt install tesseract-ocr" ;;
+            esac
+        fi
         exit 1
     fi
 }
@@ -26,14 +34,12 @@ check_dep "yt-dlp"
 check_dep "ffmpeg"
 check_dep "tesseract"
 
-# Determine OS and Architecture
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-ARCH=$(uname -m)
-
 case "$OS" in
     linux)
         if [ "$ARCH" = "x86_64" ]; then
             ASSET_NAME="yt-sl-extractor-linux-x86_64"
+        elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+            ASSET_NAME="yt-sl-extractor-linux-arm64"
         else
             echo "❌ Unsupported architecture: $ARCH"
             exit 1
@@ -42,7 +48,7 @@ case "$OS" in
     darwin)
         if [ "$ARCH" = "x86_64" ]; then
             ASSET_NAME="yt-sl-extractor-macos-x86_64"
-        elif [ "$ARCH" = "arm64" ]; then
+        elif [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
             ASSET_NAME="yt-sl-extractor-macos-arm64"
         else
             echo "❌ Unsupported architecture: $ARCH"
@@ -75,15 +81,20 @@ else
     if curl -sL --fail -o "$BINARY_NAME" "$DOWNLOAD_URL"; then
         chmod +x "$BINARY_NAME"
     else
-        echo "❌ Error: Failed to download binary from $DOWNLOAD_URL"
+        echo "⚠️  Failed to download binary from $DOWNLOAD_URL"
         echo "   Falling back to building from source..."
-        cargo build --release --package yt-sl-extractor
-        cp target/release/yt-sl-extractor "$BINARY_NAME"
-        chmod +x "$BINARY_NAME"
+        if command -v cargo &> /dev/null; then
+            cargo build --release --package yt-sl-extractor
+            cp target/release/yt-sl-extractor "$BINARY_NAME"
+            chmod +x "$BINARY_NAME"
+        else
+            echo "❌ Error: cargo is not installed and download failed."
+            exit 1
+        fi
     fi
 fi
 
-# Install to /usr/local/bin
+# Install to destination
 echo "Moving $BINARY_NAME to $INSTALL_DIR (may require sudo)..."
 if [ -w "$INSTALL_DIR" ]; then
     mv "$BINARY_NAME" "$INSTALL_DIR/"
@@ -91,4 +102,4 @@ else
     sudo mv "$BINARY_NAME" "$INSTALL_DIR/"
 fi
 
-echo "✅ Installation complete! Run 'yt-sl-extractor --help' to get started."
+echo "✅ Installation complete! Run '$BINARY_NAME --help' to get started."

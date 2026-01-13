@@ -104,7 +104,7 @@ pub fn handle_verify_availability(
         height: metadata.height,
         uploader: metadata.uploader,
         upload_date: metadata.upload_date,
-        age_restricted: metadata.age_restricted,
+        age_limit: metadata.age_limit,
     })
 }
 
@@ -263,7 +263,7 @@ mod tests {
             uploader: "Test Channel".to_string(),
             upload_date: "20240101".to_string(),
             view_count: Some(1000),
-            age_restricted: false,
+            age_limit: 0,
         };
         let result = handle_verify_availability(command, metadata);
         assert!(result.is_ok());

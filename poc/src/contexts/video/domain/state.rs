@@ -27,8 +27,8 @@ pub struct VideoAvailabilityVerified {
     pub uploader: String,
     /// The upload date
     pub upload_date: String,
-    /// Whether the video is age-restricted
-    pub age_restricted: bool,
+    /// Age limit for the video (0 if none)
+    pub age_limit: u8,
 }
 
 /// Event emitted when a video has been downloaded.
@@ -100,7 +100,7 @@ mod tests {
             height: 1080,
             uploader: "Test Channel".to_string(),
             upload_date: "20240101".to_string(),
-            age_restricted: false,
+            age_limit: 0,
         };
         assert_eq!(event.title, "Test Video");
         assert_eq!(event.duration, 180);
@@ -108,7 +108,7 @@ mod tests {
         assert_eq!(event.height, 1080);
         assert_eq!(event.uploader, "Test Channel");
         assert_eq!(event.upload_date, "20240101");
-        assert!(!event.age_restricted);
+        assert_eq!(event.age_limit, 0);
     }
 
     #[test]

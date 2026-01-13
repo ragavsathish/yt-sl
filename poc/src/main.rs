@@ -24,6 +24,12 @@ async fn main() {
         std::process::exit(1);
     }
 
+    // 2b. Check External Dependencies
+    if let Err(e) = yt_sl_extractor::shared::infrastructure::dependencies::check_dependencies() {
+        error!("Dependency check failed: {}", e.user_message());
+        std::process::exit(1);
+    }
+
     info!("Starting YouTube Video Slide Extractor...");
 
     // 3. Initialize Progress Reporter

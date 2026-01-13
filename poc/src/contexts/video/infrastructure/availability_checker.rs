@@ -33,9 +33,9 @@ pub struct VideoMetadata {
     pub upload_date: String,
     /// View count
     pub view_count: Option<u64>,
-    /// Whether the video is age-restricted
+    /// Age limit for the video (0 if none)
     #[serde(default)]
-    pub age_restricted: bool,
+    pub age_limit: u8,
 }
 
 /// Video availability status.
@@ -138,7 +138,7 @@ impl AvailabilityChecker {
             )));
         }
 
-        if metadata.age_restricted {
+        if metadata.age_limit > 0 {
             return Err(ExtractionError::VideoAgeRestricted);
         }
 
@@ -152,7 +152,7 @@ impl AvailabilityChecker {
     ) -> DomainResult<AvailabilityStatus> {
         match self.fetch_metadata(url).await {
             Ok(metadata) => {
-                if metadata.age_restricted {
+                if metadata.age_limit > 0 {
                     Ok(AvailabilityStatus::AgeRestricted)
                 } else {
                     Ok(AvailabilityStatus::Available)
@@ -278,7 +278,7 @@ impl MockAvailabilityChecker {
                 uploader: "Test Channel".to_string(),
                 upload_date: "20240101".to_string(),
                 view_count: Some(1000),
-                age_restricted: false,
+                age_limit: 0,
             }),
             error: None,
         }
@@ -361,7 +361,7 @@ mod tests {
             uploader: "Custom Channel".to_string(),
             upload_date: "20240102".to_string(),
             view_count: Some(2000),
-            age_restricted: false,
+            age_limit: 0,
         };
 
         let checker = MockAvailabilityChecker::new()
@@ -384,7 +384,7 @@ mod tests {
             uploader: "Test Channel".to_string(),
             upload_date: "20240101".to_string(),
             view_count: Some(1000),
-            age_restricted: false,
+            age_limit: 0,
         };
 
         assert_eq!(metadata.title, "Test Video");
@@ -394,7 +394,7 @@ mod tests {
         assert_eq!(metadata.uploader, "Test Channel");
         assert_eq!(metadata.upload_date, "20240101");
         assert_eq!(metadata.view_count, Some(1000));
-        assert!(!metadata.age_restricted);
+        assert_eq!(metadata.age_limit, 0);
     }
 
     #[test]

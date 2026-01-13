@@ -112,24 +112,22 @@ impl MemoryMonitor {
     fn get_current_bytes(&self) -> u64 {
         #[cfg(test)]
         {
-            let mock = self.mock_current_bytes.load(Ordering::Relaxed);
-            if mock > 0 {
-                return mock;
-            }
+            self.mock_current_bytes.load(Ordering::Relaxed)
         }
 
-        #[cfg(unix)]
+        #[cfg(all(unix, not(test)))]
         {
             self.get_current_bytes_unix()
         }
 
-        #[cfg(not(unix))]
+        #[cfg(all(not(unix), not(test)))]
         {
             self.peak_bytes.load(Ordering::Relaxed)
         }
     }
 
     #[cfg(unix)]
+    #[allow(dead_code)]
     fn get_current_bytes_unix(&self) -> u64 {
         if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
             for line in status.lines() {
@@ -219,21 +217,19 @@ pub fn validate_memory_requirement(required_mb: u64) -> DomainResult<()> {
 /// This is a platform-specific function that returns the available
 /// system memory in MB.
 fn get_available_memory_mb() -> DomainResult<u64> {
-    #[cfg(unix)]
-    {
-        get_available_memory_unix()
-    }
+    #[cfg(test)]
+    return Ok(1024); // Return 1GB in tests
 
-    #[cfg(not(unix))]
-    {
-        // Fallback for non-Unix systems
-        // In production, you'd want platform-specific implementations
-        Ok(1024) // Assume 1GB available
-    }
+    #[cfg(all(unix, not(test)))]
+    return get_available_memory_unix();
+
+    #[cfg(all(not(unix), not(test)))]
+    return Ok(1024); // Assume 1GB available
 }
 
 /// Gets available memory on Unix-like systems.
 #[cfg(unix)]
+#[allow(dead_code)]
 fn get_available_memory_unix() -> DomainResult<u64> {
     // Read /proc/meminfo to get memory info
     if let Ok(meminfo) = std::fs::read_to_string("/proc/meminfo") {

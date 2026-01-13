@@ -35,7 +35,7 @@ This tool relies on several external dependencies that must be available in your
 Run the following command in your terminal:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/your-repo/yt-sl-extractor/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/ragavsathish/yt-sl/main/install.sh | bash
 ```
 
 ### Option 2: Build from Source
@@ -43,8 +43,8 @@ curl -sSL https://raw.githubusercontent.com/your-repo/yt-sl-extractor/main/insta
 Clone the repository and build the project using Cargo:
 
 ```bash
-git clone https://github.com/your-repo/yt-sl-extractor.git
-cd yt-sl-extractor
+git clone https://github.com/ragavsathish/yt-sl.git
+cd yt-sl
 cargo build --release
 ```
 
@@ -104,7 +104,7 @@ cargo run -p yt-sl-extractor -- \
 The project includes a comprehensive test suite with 230+ tests.
 
 ```bash
-cargo test -p poc
+cargo test -p yt-sl-extractor
 ```
 
 ## 📝 License

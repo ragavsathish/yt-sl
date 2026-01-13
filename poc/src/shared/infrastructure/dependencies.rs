@@ -229,14 +229,26 @@ impl DependencyChecker {
     }
 
     fn get_version(&self, dependency: &Dependency, command: &str) -> Result<String, String> {
+        // Try -version first for FFmpeg, --version for others
+        let primary_flag = if matches!(dependency, Dependency::FFmpeg) {
+            "-version"
+        } else {
+            "--version"
+        };
+        let secondary_flag = if matches!(dependency, Dependency::FFmpeg) {
+            "--version"
+        } else {
+            "-version"
+        };
+
         let output = Command::new(command)
-            .arg("--version")
+            .arg(primary_flag)
             .output()
             .map_err(|e| format!("Failed to execute {}: {}", command, e))?;
 
         if !output.status.success() {
             let output = Command::new(command)
-                .arg("-version")
+                .arg(secondary_flag)
                 .output()
                 .map_err(|e| format!("Failed to execute {}: {}", command, e))?;
 
@@ -310,13 +322,18 @@ impl DependencyChecker {
             .filter_map(|s| s.parse().ok())
             .collect();
 
-        for (p1, p2) in v1_parts.iter().zip(v2_parts.iter()) {
+        let max_len = std::cmp::max(v1_parts.len(), v2_parts.len());
+
+        for i in 0..max_len {
+            let p1 = v1_parts.get(i).copied().unwrap_or(0);
+            let p2 = v2_parts.get(i).copied().unwrap_or(0);
+
             if p1 != p2 {
-                return (*p1 as i32) - (*p2 as i32);
+                return (p1 as i32) - (p2 as i32);
             }
         }
 
-        (v1_parts.len() as i32) - (v2_parts.len() as i32)
+        0
     }
 }
 
@@ -419,6 +436,10 @@ mod tests {
         assert!(checker.compare_versions("4.0.0", "4.0.0") == 0);
         assert!(checker.compare_versions("4.1.0", "4.0.0") > 0);
         assert!(checker.compare_versions("4.0.1", "4.0.0") > 0);
+        assert!(checker.compare_versions("4.0", "4.0.0") == 0);
+        assert!(checker.compare_versions("4.0.0", "4.0") == 0);
+        assert!(checker.compare_versions("4", "4.0.0") == 0);
+        assert!(checker.compare_versions("4.1", "4.0.0") > 0);
     }
 
     #[test]
