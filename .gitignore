@@ -41,5 +41,5 @@ temp/
 .env
 .env.local
 .env.*.local
-output_*
+output*
 yt-sl-extractor
