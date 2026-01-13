@@ -42,14 +42,6 @@ pub struct ExtractionConfig {
 
 impl ExtractionConfig {
     /// Creates a new configuration with the given YouTube URL and default values.
-    ///
-    /// # Arguments
-    ///
-    /// * `youtube_url` - The YouTube URL to process
-    ///
-    /// # Returns
-    ///
-    /// A new `ExtractionConfig` with default values for all optional parameters.
     pub fn new(youtube_url: String) -> Self {
         Self {
             youtube_url,
@@ -63,14 +55,6 @@ impl ExtractionConfig {
     }
 
     /// Validates the configuration parameters.
-    ///
-    /// This method checks all configuration parameters for validity according to
-    /// the acceptance criteria in US-ERR-05.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if all parameters are valid
-    /// * `Err(ExtractionError)` if any parameter is invalid
     pub fn validate(&self) -> DomainResult<()> {
         let mut errors = Vec::new();
 
@@ -114,7 +98,6 @@ impl ExtractionConfig {
             ));
         }
 
-        // If there are any errors, return them
         if !errors.is_empty() {
             return Err(ExtractionError::InvalidConfig(errors.join("; ")));
         }
@@ -122,20 +105,11 @@ impl ExtractionConfig {
         Ok(())
     }
 
-    /// Validates the configuration and returns a new validated configuration.
-    ///
-    /// This is a convenience method that combines validation with returning self.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(Self)` if validation passes
-    /// * `Err(ExtractionError)` if validation fails
     pub fn validated(self) -> DomainResult<Self> {
         self.validate()?;
         Ok(self)
     }
 
-    /// Returns a builder for creating configurations with custom values.
     pub fn builder() -> ConfigBuilder {
         ConfigBuilder::new()
     }
@@ -154,7 +128,6 @@ pub struct ConfigBuilder {
 }
 
 impl ConfigBuilder {
-    /// Creates a new builder with no values set.
     pub fn new() -> Self {
         Self {
             youtube_url: None,
@@ -167,54 +140,41 @@ impl ConfigBuilder {
         }
     }
 
-    /// Sets the YouTube URL.
     pub fn youtube_url(mut self, url: String) -> Self {
         self.youtube_url = Some(url);
         self
     }
 
-    /// Sets the frame extraction interval.
     pub fn interval(mut self, interval: f64) -> Self {
         self.interval = Some(interval);
         self
     }
 
-    /// Sets the similarity threshold.
     pub fn threshold(mut self, threshold: f64) -> Self {
         self.threshold = Some(threshold);
         self
     }
 
-    /// Sets the output directory.
     pub fn output_dir(mut self, dir: PathBuf) -> Self {
         self.output_dir = Some(dir);
         self
     }
 
-    /// Sets the OCR languages.
     pub fn languages(mut self, languages: Vec<String>) -> Self {
         self.languages = Some(languages);
         self
     }
 
-    /// Sets whether to include timestamps.
     pub fn timestamps(mut self, timestamps: bool) -> Self {
         self.timestamps = Some(timestamps);
         self
     }
 
-    /// Sets the memory threshold in MB.
     pub fn memory_threshold_mb(mut self, threshold: u64) -> Self {
         self.memory_threshold_mb = Some(threshold);
         self
     }
 
-    /// Builds the configuration.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(ExtractionConfig)` if all required fields are set and validation passes
-    /// * `Err(ExtractionError)` if required fields are missing or validation fails
     pub fn build(self) -> DomainResult<ExtractionConfig> {
         let youtube_url = self
             .youtube_url

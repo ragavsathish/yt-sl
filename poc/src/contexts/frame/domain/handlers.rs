@@ -9,22 +9,6 @@ use crate::shared::domain::{DomainResult, ExtractionError, Id, VideoFrame, YouTu
 use std::path::Path;
 
 /// Handles an extract frames command.
-///
-/// This function provides frame extraction functionality as specified in US-FRAME-01:
-/// Extract Frames at Intervals.
-///
-/// # Arguments
-///
-/// * `command` - The extract frames command
-/// * `duration_sec` - The video duration in seconds
-///
-/// # Returns
-///
-/// A FramesExtracted event
-///
-/// # Errors
-///
-/// Returns an error if frame extraction fails
 pub fn handle_extract_frames(
     command: ExtractFramesCommand,
     duration_sec: u64,
@@ -54,15 +38,6 @@ pub fn handle_extract_frames(
 }
 
 /// Calculates the total number of frames to extract.
-///
-/// # Arguments
-///
-/// * `duration_sec` - Video duration in seconds
-/// * `interval_secs` - Frame extraction interval in seconds
-///
-/// # Returns
-///
-/// Total number of frames to extract
 pub fn calculate_total_frames(duration_sec: u64, interval_secs: u64) -> u32 {
     if interval_secs == 0 {
         return 0;
@@ -76,51 +51,20 @@ pub fn calculate_total_frames(duration_sec: u64, interval_secs: u64) -> u32 {
 }
 
 /// Handles a compute hash command.
-///
-/// This function provides perceptual hash computation functionality as specified in US-FRAME-02:
-/// Compute Perceptual Hash.
-///
-/// # Arguments
-///
-/// * `command` - The compute hash command
-///
-/// # Returns
-///
-/// A HashComputed event
-///
-/// # Errors
-///
-/// Returns an error if hash computation fails
 pub fn handle_compute_hash(command: ComputeHashCommand) -> DomainResult<HashComputed> {
     if !Path::new(&command.frame_path).exists() {
         return Err(ExtractionError::HashComputationFailed(command.frame_id));
     }
 
-    // Hash computation is delegated to infrastructure
     Ok(HashComputed {
         frame_id: command.frame_id,
-        hash: String::new(), // Will be filled by infrastructure
+        hash: String::new(),
         algorithm: format!("{:?}", command.algorithm),
-        computation_time_ms: 0, // Will be filled by infrastructure
+        computation_time_ms: 0,
     })
 }
 
 /// Handles a frame error command.
-///
-/// This function provides frame extraction error handling functionality as specified in US-FRAME-03:
-/// Handle Frame Extraction Errors.
-///
-/// # Arguments
-///
-/// * `command` - The handle frame error command
-///
-/// # Returns
-///
-/// A FrameErrorOccurred event
-///
-/// # Errors
-///
-/// Returns an error if too many frames have failed
 pub fn handle_frame_error(command: HandleFrameErrorCommand) -> DomainResult<FrameErrorOccurred> {
     let continue_extraction = command.skipped_count < command.max_skipped;
 
@@ -140,20 +84,6 @@ pub fn handle_frame_error(command: HandleFrameErrorCommand) -> DomainResult<Fram
 }
 
 /// Handles an optimize storage command.
-///
-/// This function provides frame storage optimization functionality as specified in US-FRAME-04:
-/// Optimize Frame Storage.
-///
-/// # Arguments
-///
-/// * `command` - The optimize storage command
-/// * `original_size_bytes` - Original total size in bytes
-/// * `optimized_size_bytes` - Optimized total size in bytes
-/// * `frame_count` - Number of frames processed
-///
-/// # Returns
-///
-/// A StorageOptimized event
 pub fn handle_optimize_storage(
     command: OptimizeStorageCommand,
     original_size_bytes: u64,
@@ -176,21 +106,6 @@ pub fn handle_optimize_storage(
     })
 }
 
-/// Creates a frame extracted event.
-///
-/// # Arguments
-///
-/// * `frame_id` - The frame ID
-/// * `video_id` - The video ID
-/// * `frame_number` - The frame number
-/// * `timestamp` - The frame timestamp in seconds
-/// * `frame_path` - The path to the frame file
-/// * `width` - The frame width in pixels
-/// * `height` - The frame height in pixels
-///
-/// # Returns
-///
-/// A FrameExtracted event
 pub fn create_frame_extracted_event(
     frame_id: Id<VideoFrame>,
     video_id: Id<YouTubeVideo>,
@@ -211,17 +126,6 @@ pub fn create_frame_extracted_event(
     }
 }
 
-/// Creates a too many frame errors event.
-///
-/// # Arguments
-///
-/// * `video_id` - The video ID
-/// * `failed_count` - Number of frames that failed
-/// * `max_failures` - Maximum allowed failures
-///
-/// # Returns
-///
-/// A TooManyFrameErrors event
 pub fn create_too_many_errors_event(
     video_id: Id<YouTubeVideo>,
     failed_count: u32,
@@ -234,18 +138,6 @@ pub fn create_too_many_errors_event(
     }
 }
 
-/// Creates a temporary frames cleaned event.
-///
-/// # Arguments
-///
-/// * `video_id` - The video ID
-/// * `directory` - The directory that was cleaned
-/// * `frames_deleted` - Number of frames deleted
-/// * `space_freed_bytes` - Space freed in bytes
-///
-/// # Returns
-///
-/// A TemporaryFramesCleaned event
 pub fn create_frames_cleaned_event(
     video_id: Id<YouTubeVideo>,
     directory: String,

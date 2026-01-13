@@ -35,7 +35,6 @@ pub struct FrameExtractor {
 }
 
 impl FrameExtractor {
-    /// Creates a new frame extractor with default settings.
     pub fn new() -> Self {
         Self {
             memory_monitor: MemoryMonitor::new(),
@@ -43,11 +42,6 @@ impl FrameExtractor {
         }
     }
 
-    /// Creates a new frame extractor with custom memory limit.
-    ///
-    /// # Arguments
-    ///
-    /// * `max_memory_mb` - Maximum memory in megabytes
     pub fn with_memory_limit(max_memory_mb: u64) -> Self {
         Self {
             memory_monitor: MemoryMonitor::with_threshold(max_memory_mb, 0.8),
@@ -59,28 +53,13 @@ impl FrameExtractor {
     ///
     /// This function provides frame extraction functionality as specified in US-FRAME-01:
     /// Extract Frames at Intervals.
-    ///
-    /// # Arguments
-    ///
-    /// * `command` - The extract frames command
-    /// * `duration_sec` - The video duration in seconds
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing FramesExtracted event and a vector of FrameExtracted events
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if frame extraction fails
     pub async fn extract_frames(
         &mut self,
         command: ExtractFramesCommand,
         duration_sec: u64,
     ) -> DomainResult<(FramesExtracted, Vec<FrameExtracted>)> {
-        // Validate parameters
         validate_extraction_params(&command)?;
 
-        // Create output directory
         fs::create_dir_all(&command.output_dir).map_err(|e| {
             ExtractionError::FrameExtractionFailed(format!(
                 "Failed to create output directory: {}",
@@ -88,18 +67,14 @@ impl FrameExtractor {
             ))
         })?;
 
-        // Check memory
         self.memory_monitor.validate()?;
 
-        // Get total frames to extract
         let total_frames = handle_extract_frames(command.clone(), duration_sec)?.total_frames;
 
-        // Extract frames using FFmpeg
         let frames = self
             .extract_frames_with_ffmpeg(command.clone(), duration_sec, total_frames)
             .await?;
 
-        // Create frames extracted event
         let extracted_event = FramesExtracted {
             video_id: command.video_id,
             total_frames: frames.len() as u32,
@@ -111,17 +86,6 @@ impl FrameExtractor {
         Ok((extracted_event, frames))
     }
 
-    /// Extracts frames using FFmpeg command.
-    ///
-    /// # Arguments
-    ///
-    /// * `command` - The extract frames command
-    /// * `duration_sec` - The video duration in seconds
-    /// * `total_frames` - Total number of frames to extract
-    ///
-    /// # Returns
-    ///
-    /// A vector of FrameExtracted events
     async fn extract_frames_with_ffmpeg(
         &mut self,
         command: ExtractFramesCommand,
@@ -134,7 +98,6 @@ impl FrameExtractor {
             FrameFormat::Png => "png",
         };
 
-        // Build FFmpeg command
         let mut ffmpeg_cmd = Command::new("ffmpeg");
         ffmpeg_cmd.arg("-i");
         ffmpeg_cmd.arg(&command.video_path);
@@ -152,7 +115,6 @@ impl FrameExtractor {
             .join(format!("{}_frame_%04d.{}", command.video_id, extension));
         ffmpeg_cmd.arg(output_pattern);
 
-        // Execute FFmpeg
         let output = ffmpeg_cmd.output().map_err(|e| {
             ExtractionError::FrameExtractionFailed(format!("Failed to execute FFmpeg: {}", e))
         })?;
@@ -164,21 +126,17 @@ impl FrameExtractor {
             )));
         }
 
-        // Read extracted frames
         let video_id = command.video_id;
         for frame_number in 1..=total_frames {
-            // Check memory
             if self.memory_monitor.check_and_warn() {
                 tracing::warn!("Memory usage approaching threshold during frame extraction");
             }
 
             let timestamp = ((frame_number - 1) as u64 * command.interval_secs) as f64;
 
-            // Generate frame path
             let frame_path =
                 generate_frame_path(&command.output_dir, &video_id, frame_number, extension);
 
-            // Check if frame exists and get dimensions
             if Path::new(&frame_path).exists() {
                 let (width, height) = self.get_frame_dimensions(&frame_path)?;
 
@@ -200,15 +158,6 @@ impl FrameExtractor {
         Ok(frames)
     }
 
-    /// Gets the dimensions of a frame image.
-    ///
-    /// # Arguments
-    ///
-    /// * `frame_path` - Path to the frame image
-    ///
-    /// # Returns
-    ///
-    /// A tuple of (width, height) in pixels
     fn get_frame_dimensions(&self, frame_path: &str) -> DomainResult<(u32, u32)> {
         let img = image::open(frame_path).map_err(|_e| {
             ExtractionError::FrameExtractionFailed(format!(
@@ -220,15 +169,6 @@ impl FrameExtractor {
         Ok((img.width(), img.height()))
     }
 
-    /// Validates a frame image.
-    ///
-    /// # Arguments
-    ///
-    /// * `frame_path` - Path to the frame image
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) if frame is valid, error otherwise
     pub fn validate_frame(frame_path: &str) -> DomainResult<()> {
         let img = image::open(frame_path)
             .map_err(|_e| ExtractionError::CorruptFrame { timestamp: 0.0 })?;
@@ -241,17 +181,6 @@ impl FrameExtractor {
     }
 
     /// Extracts a single frame from video at a specific timestamp.
-    ///
-    /// # Arguments
-    ///
-    /// * `video_path` - Path to the video file
-    /// * `timestamp_sec` - Timestamp in seconds
-    /// * `output_path` - Output path for the frame
-    /// * `format` - Output format
-    ///
-    /// # Returns
-    ///
-    /// Ok(()) if successful, error otherwise
     pub fn extract_single_frame(
         video_path: &str,
         timestamp_sec: f64,

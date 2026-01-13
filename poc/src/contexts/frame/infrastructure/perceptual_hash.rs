@@ -31,7 +31,6 @@ pub struct PerceptualHasher {
 }
 
 impl PerceptualHasher {
-    /// Creates a new perceptual hasher with default settings.
     pub fn new() -> Self {
         Self {
             algorithm: HashAlgorithm::Average,
@@ -39,11 +38,6 @@ impl PerceptualHasher {
         }
     }
 
-    /// Creates a new perceptual hasher with custom algorithm.
-    ///
-    /// # Arguments
-    ///
-    /// * `algorithm` - The hash algorithm to use
     pub fn with_algorithm(algorithm: HashAlgorithm) -> Self {
         Self {
             algorithm,
@@ -51,12 +45,6 @@ impl PerceptualHasher {
         }
     }
 
-    /// Creates a new perceptual hasher with custom hash size.
-    ///
-    /// # Arguments
-    ///
-    /// * `algorithm` - The hash algorithm to use
-    /// * `hash_size` - The hash size (e.g., 8 for 8x8)
     pub fn with_settings(algorithm: HashAlgorithm, hash_size: u32) -> Self {
         Self {
             algorithm,
@@ -68,32 +56,17 @@ impl PerceptualHasher {
     ///
     /// This function provides perceptual hash computation functionality as specified in US-FRAME-02:
     /// Compute Perceptual Hash.
-    ///
-    /// # Arguments
-    ///
-    /// * `command` - The compute hash command
-    ///
-    /// # Returns
-    ///
-    /// A HashComputed event
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if hash computation fails
     pub fn compute_hash(&self, command: ComputeHashCommand) -> DomainResult<HashComputed> {
         validate_hash_params(command.algorithm, self.hash_size)?;
 
         let start = Instant::now();
         let frame_id = command.frame_id;
 
-        // Load the image
         let img = image::open(&command.frame_path)
             .map_err(|_e| ExtractionError::HashComputationFailed(frame_id.clone()))?;
 
-        // Convert to grayscale
         let gray_img = img.to_luma8();
 
-        // Compute hash based on algorithm
         let hash = match command.algorithm {
             HashAlgorithm::Average => self.compute_average_hash(&gray_img),
             HashAlgorithm::Difference => self.compute_difference_hash(&gray_img),
@@ -110,17 +83,7 @@ impl PerceptualHasher {
         })
     }
 
-    /// Computes average hash.
-    ///
-    /// # Arguments
-    ///
-    /// * `img` - Grayscale image
-    ///
-    /// # Returns
-    ///
-    /// The hash as a hexadecimal string
     fn compute_average_hash(&self, img: &ImageBuffer<Luma<u8>, Vec<u8>>) -> String {
-        // Resize to hash_size x hash_size
         let small = image::imageops::resize(
             img,
             self.hash_size,
@@ -128,14 +91,12 @@ impl PerceptualHasher {
             image::imageops::FilterType::Lanczos3,
         );
 
-        // Calculate average pixel value
         let mut sum: u64 = 0;
         for pixel in small.pixels() {
             sum += pixel[0] as u64;
         }
         let avg = (sum / (self.hash_size * self.hash_size) as u64) as u8;
 
-        // Generate hash: 1 if pixel >= avg, 0 otherwise
         let mut hash_bits = Vec::with_capacity((self.hash_size * self.hash_size) as usize);
         for pixel in small.pixels() {
             hash_bits.push(if pixel[0] >= avg { 1u8 } else { 0u8 });
@@ -144,17 +105,7 @@ impl PerceptualHasher {
         self.bits_to_hex(&hash_bits)
     }
 
-    /// Computes difference hash.
-    ///
-    /// # Arguments
-    ///
-    /// * `img` - Grayscale image
-    ///
-    /// # Returns
-    ///
-    /// The hash as a hexadecimal string
     fn compute_difference_hash(&self, img: &ImageBuffer<Luma<u8>, Vec<u8>>) -> String {
-        // Resize to (hash_size+1) x hash_size
         let width = self.hash_size + 1;
         let small = image::imageops::resize(
             img,
@@ -163,7 +114,6 @@ impl PerceptualHasher {
             image::imageops::FilterType::Lanczos3,
         );
 
-        // Compute differences between adjacent pixels
         let mut hash_bits = Vec::with_capacity((self.hash_size * self.hash_size) as usize);
         for y in 0..self.hash_size {
             for x in 0..self.hash_size {
@@ -177,29 +127,17 @@ impl PerceptualHasher {
     }
 
     /// Computes perceptual hash using DCT approximation.
-    ///
-    /// # Arguments
-    ///
-    /// * `img` - Grayscale image
-    ///
-    /// # Returns
-    ///
-    /// The hash as a hexadecimal string
     fn compute_perceptual_hash(&self, img: &ImageBuffer<Luma<u8>, Vec<u8>>) -> String {
-        // Resize to 32x32 for DCT approximation
         let small = image::imageops::resize(img, 32, 32, image::imageops::FilterType::Lanczos3);
 
-        // Simple approximation: use average hash on 8x8 version
         let tiny = image::imageops::resize(&small, 8, 8, image::imageops::FilterType::Lanczos3);
 
-        // Calculate average pixel value
         let mut sum: u64 = 0;
         for pixel in tiny.pixels() {
             sum += pixel[0] as u64;
         }
         let avg = (sum / 64) as u8;
 
-        // Generate hash
         let mut hash_bits = Vec::with_capacity(64);
         for pixel in tiny.pixels() {
             hash_bits.push(if pixel[0] >= avg { 1u8 } else { 0u8 });
@@ -208,15 +146,6 @@ impl PerceptualHasher {
         self.bits_to_hex(&hash_bits)
     }
 
-    /// Converts bits to hexadecimal string.
-    ///
-    /// # Arguments
-    ///
-    /// * `bits` - Vector of bits
-    ///
-    /// # Returns
-    ///
-    /// Hexadecimal string representation
     fn bits_to_hex(&self, bits: &[u8]) -> String {
         let mut hex = String::new();
         for chunk in bits.chunks(4) {
@@ -231,16 +160,7 @@ impl PerceptualHasher {
         hex
     }
 
-    /// Computes similarity between two hashes.
-    ///
-    /// # Arguments
-    ///
-    /// * `hash1` - First hash
-    /// * `hash2` - Second hash
-    ///
-    /// # Returns
-    ///
-    /// Similarity score between 0.0 (completely different) and 1.0 (identical)
+    /// Computes similarity score between 0.0 (completely different) and 1.0 (identical)
     pub fn compute_similarity(hash1: &str, hash2: &str) -> f64 {
         if hash1.len() != hash2.len() {
             return 0.0;
@@ -262,14 +182,6 @@ impl PerceptualHasher {
     }
 
     /// Computes ahash using ahash crate for efficient hashing.
-    ///
-    /// # Arguments
-    ///
-    /// * `data` - Data to hash
-    ///
-    /// # Returns
-    ///
-    /// The hash as a hexadecimal string
     pub fn compute_ahash(data: &[u8]) -> String {
         let mut hasher = AHasher::default();
         hasher.write(data);
@@ -277,15 +189,6 @@ impl PerceptualHasher {
         format!("{:016x}", hash)
     }
 
-    /// Computes a combined hash using multiple algorithms.
-    ///
-    /// # Arguments
-    ///
-    /// * `img` - Grayscale image
-    ///
-    /// # Returns
-    ///
-    /// A combined hash string
     pub fn compute_combined_hash(&self, img: &ImageBuffer<Luma<u8>, Vec<u8>>) -> String {
         let avg_hash = self.compute_average_hash(img);
         let diff_hash = self.compute_difference_hash(img);

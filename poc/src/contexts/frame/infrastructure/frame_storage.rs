@@ -37,7 +37,6 @@ pub struct FrameStorageOptimizer {
 }
 
 impl FrameStorageOptimizer {
-    /// Creates a new frame storage optimizer with default settings.
     pub fn new() -> Self {
         Self {
             frame_cache: HashMap::new(),
@@ -46,11 +45,6 @@ impl FrameStorageOptimizer {
         }
     }
 
-    /// Creates a new frame storage optimizer with custom cache size.
-    ///
-    /// # Arguments
-    ///
-    /// * `max_cache_mb` - Maximum cache size in megabytes
     pub fn with_cache_size(max_cache_mb: u64) -> Self {
         Self {
             frame_cache: HashMap::new(),
@@ -63,23 +57,10 @@ impl FrameStorageOptimizer {
     ///
     /// This function provides frame storage optimization functionality as specified in US-FRAME-04:
     /// Optimize Frame Storage.
-    ///
-    /// # Arguments
-    ///
-    /// * `command` - The optimize storage command
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing StorageOptimized event and optionally TemporaryFramesCleaned event
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if optimization fails
     pub fn optimize_storage(
         &mut self,
         command: OptimizeStorageCommand,
     ) -> DomainResult<(StorageOptimized, Option<TemporaryFramesCleaned>)> {
-        // Check if frames directory exists
         if !Path::new(&command.frames_dir).exists() {
             return Err(ExtractionError::FrameExtractionFailed(format!(
                 "Frames directory not found: {}",
@@ -87,10 +68,8 @@ impl FrameStorageOptimizer {
             )));
         }
 
-        // Calculate original size
         let original_size = self.calculate_directory_size(&command.frames_dir)?;
 
-        // Check disk usage limit
         if original_size > MAX_FRAME_STORAGE_BYTES {
             return Err(ExtractionError::InsufficientDiskSpace(
                 MAX_FRAME_STORAGE_BYTES / (1024 * 1024),
@@ -98,7 +77,6 @@ impl FrameStorageOptimizer {
             ));
         }
 
-        // Compress frames if requested
         let (optimized_size, frame_count) = if command.compress {
             self.compress_frames(&command)?
         } else {
@@ -106,11 +84,9 @@ impl FrameStorageOptimizer {
             (original_size, count)
         };
 
-        // Create optimized event
         let optimized_event =
             handle_optimize_storage(command.clone(), original_size, optimized_size, frame_count)?;
 
-        // Clean up temporary frames if requested
         let cleaned_event = if command.cleanup_temp {
             Some(self.cleanup_temporary_frames(command.frames_dir.clone())?)
         } else {
@@ -120,15 +96,6 @@ impl FrameStorageOptimizer {
         Ok((optimized_event, cleaned_event))
     }
 
-    /// Compresses frames to reduce disk usage.
-    ///
-    /// # Arguments
-    ///
-    /// * `command` - The optimize storage command
-    ///
-    /// # Returns
-    ///
-    /// A tuple of (optimized_size_bytes, frame_count)
     fn compress_frames(&mut self, command: &OptimizeStorageCommand) -> DomainResult<(u64, u32)> {
         let entries = fs::read_dir(&command.frames_dir).map_err(|e| {
             ExtractionError::FrameExtractionFailed(format!(
@@ -151,9 +118,7 @@ impl FrameStorageOptimizer {
 
             let path = entry.path();
 
-            // Only process image files
             if path.extension().and_then(|s| s.to_str()) == Some("png") {
-                // Load PNG image
                 let img = image::open(&path).map_err(|e| {
                     ExtractionError::FrameExtractionFailed(format!(
                         "Failed to open frame {}: {}",
@@ -162,11 +127,9 @@ impl FrameStorageOptimizer {
                     ))
                 })?;
 
-                // Save as JPEG with compression
                 let jpeg_path = path.with_extension("jpg");
                 self.save_as_jpeg(&img, &jpeg_path, quality)?;
 
-                // Get optimized file size
                 let metadata = fs::metadata(&jpeg_path).map_err(|e| {
                     ExtractionError::FrameExtractionFailed(format!("Failed to get metadata: {}", e))
                 })?;
@@ -174,12 +137,10 @@ impl FrameStorageOptimizer {
                 total_size += metadata.len();
                 frame_count += 1;
 
-                // Delete original PNG if JPEG was created successfully
                 if jpeg_path.exists() {
                     let _ = fs::remove_file(&path);
                 }
             } else if path.extension().and_then(|s| s.to_str()) == Some("jpg") {
-                // Already JPEG, just count it
                 let metadata = fs::metadata(&path).map_err(|e| {
                     ExtractionError::FrameExtractionFailed(format!("Failed to get metadata: {}", e))
                 })?;
@@ -191,13 +152,6 @@ impl FrameStorageOptimizer {
         Ok((total_size, frame_count))
     }
 
-    /// Saves an image as JPEG with specified quality.
-    ///
-    /// # Arguments
-    ///
-    /// * `img` - The image to save
-    /// * `path` - The output path
-    /// * `quality` - JPEG quality (1-100)
     fn save_as_jpeg(&self, img: &DynamicImage, path: &Path, quality: u8) -> DomainResult<()> {
         let mut output = fs::File::create(path).map_err(|e| {
             ExtractionError::FrameExtractionFailed(format!(
@@ -216,15 +170,6 @@ impl FrameStorageOptimizer {
         Ok(())
     }
 
-    /// Cleans up temporary frames.
-    ///
-    /// # Arguments
-    ///
-    /// * `frames_dir` - Directory containing frames to clean
-    ///
-    /// # Returns
-    ///
-    /// A TemporaryFramesCleaned event
     fn cleanup_temporary_frames(
         &mut self,
         frames_dir: String,
@@ -249,7 +194,6 @@ impl FrameStorageOptimizer {
 
             let path = entry.path();
 
-            // Delete all frame files
             if path.is_file() {
                 let metadata = fs::metadata(&path).map_err(|e| {
                     ExtractionError::FrameExtractionFailed(format!("Failed to get metadata: {}", e))
@@ -268,7 +212,6 @@ impl FrameStorageOptimizer {
             }
         }
 
-        // Remove directory if empty
         if fs::read_dir(&frames_dir)
             .map(|mut entries| entries.next().is_none())
             .unwrap_or(false)
@@ -284,15 +227,6 @@ impl FrameStorageOptimizer {
         ))
     }
 
-    /// Calculates total size of a directory.
-    ///
-    /// # Arguments
-    ///
-    /// * `dir` - Directory to calculate size for
-    ///
-    /// # Returns
-    ///
-    /// Total size in bytes
     fn calculate_directory_size(&self, dir: &str) -> DomainResult<u64> {
         let mut total_size = 0u64;
 
@@ -315,15 +249,6 @@ impl FrameStorageOptimizer {
         Ok(total_size)
     }
 
-    /// Counts the number of frame files in a directory.
-    ///
-    /// # Arguments
-    ///
-    /// * `dir` - Directory to count frames in
-    ///
-    /// # Returns
-    ///
-    /// Number of frame files
     fn count_frames(&self, dir: &str) -> DomainResult<u32> {
         let mut count = 0u32;
 
@@ -346,16 +271,9 @@ impl FrameStorageOptimizer {
         Ok(count)
     }
 
-    /// Caches a frame for faster access.
-    ///
-    /// # Arguments
-    ///
-    /// * `frame_id` - The frame ID
-    /// * `img` - The image to cache
     pub fn cache_frame(&mut self, frame_id: Id<VideoFrame>, img: DynamicImage) {
         let size = img.as_bytes().len() as u64;
 
-        // Evict old frames if cache is full
         while self.current_cache_bytes + size >= self.max_cache_bytes {
             if let Some(id) = self.frame_cache.keys().next().cloned() {
                 if let Some(cached) = self.frame_cache.remove(&id) {
@@ -370,31 +288,19 @@ impl FrameStorageOptimizer {
         self.current_cache_bytes += size;
     }
 
-    /// Gets a cached frame.
-    ///
-    /// # Arguments
-    ///
-    /// * `frame_id` - The frame ID
-    ///
-    /// # Returns
-    ///
-    /// The cached image if found, None otherwise
     pub fn get_cached_frame(&self, frame_id: &Id<VideoFrame>) -> Option<&DynamicImage> {
         self.frame_cache.get(frame_id)
     }
 
-    /// Clears the frame cache.
     pub fn clear_cache(&mut self) {
         self.frame_cache.clear();
         self.current_cache_bytes = 0;
     }
 
-    /// Gets current cache size in bytes.
     pub fn cache_size_bytes(&self) -> u64 {
         self.current_cache_bytes
     }
 
-    /// Gets maximum cache size in bytes.
     pub fn max_cache_bytes(&self) -> u64 {
         self.max_cache_bytes
     }

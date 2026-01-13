@@ -13,22 +13,11 @@ use tokio::process::Command;
 pub struct VideoDownloader;
 
 impl VideoDownloader {
-    /// Creates a new video downloader.
     pub fn new() -> Self {
         Self
     }
 
     /// Downloads a video from YouTube.
-    ///
-    /// # Arguments
-    ///
-    /// * `command` - The download command
-    /// * `url` - The YouTube URL
-    /// * `output_dir` - Directory to save the video
-    ///
-    /// # Returns
-    ///
-    /// A VideoDownloaded event
     pub async fn download_video(
         &self,
         command: DownloadVideoCommand,
@@ -37,7 +26,6 @@ impl VideoDownloader {
     ) -> DomainResult<VideoDownloaded> {
         let video_path = format!("{}/{}.mp4", output_dir, command.video_id);
 
-        // Ensure output directory exists
         if let Some(parent) = Path::new(&video_path).parent() {
             std::fs::create_dir_all(parent).map_err(|e| {
                 ExtractionError::FileSystemError(format!(
@@ -74,11 +62,10 @@ impl VideoDownloader {
             ));
         }
 
-        // In a real app, we'd probe for resolution/size, but for now we'll use defaults or mock
         Ok(VideoDownloaded {
             video_id: command.video_id,
             path: video_path,
-            duration_sec: 0, // Will be updated by caller
+            duration_sec: 0,
             width: 1920,
             height: 1080,
             file_size: 0,

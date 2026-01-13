@@ -23,12 +23,10 @@ pub struct DiskSpaceInfo {
 }
 
 impl DiskSpaceInfo {
-    /// Returns available disk space in megabytes.
     pub fn available_mb(&self) -> u64 {
         self.available_bytes / (1024 * 1024)
     }
 
-    /// Returns total disk space in megabytes.
     pub fn total_mb(&self) -> u64 {
         self.total_bytes / (1024 * 1024)
     }
@@ -36,12 +34,10 @@ impl DiskSpaceInfo {
 
 /// Validates and manages output directories.
 pub struct OutputDirectoryValidator {
-    /// The output directory path
     output_dir: PathBuf,
 }
 
 impl OutputDirectoryValidator {
-    /// Creates a new validator for the given output directory.
     pub fn new(output_dir: PathBuf) -> Self {
         Self { output_dir }
     }
@@ -53,26 +49,11 @@ impl OutputDirectoryValidator {
     /// - Creates output directory if it doesn't exist
     /// - Validates sufficient disk space
     /// - Handles permission errors
-    ///
-    /// # Arguments
-    ///
-    /// * `required_space_mb` - Required disk space in MB (optional)
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(PathBuf)` - The validated output directory path
-    /// * `Err(ExtractionError)` - If validation fails
     pub fn validate(&self, required_space_mb: Option<u64>) -> DomainResult<PathBuf> {
-        // Check if parent directory exists
         self.validate_parent_directory()?;
-
-        // Create directory if it doesn't exist
         self.ensure_directory_exists()?;
-
-        // Check write permissions
         self.validate_write_permissions()?;
 
-        // Check disk space if required space is specified
         if let Some(required_mb) = required_space_mb {
             self.validate_disk_space(required_mb)?;
         }
@@ -80,7 +61,6 @@ impl OutputDirectoryValidator {
         Ok(self.output_dir.clone())
     }
 
-    /// Validates that the parent directory exists.
     fn validate_parent_directory(&self) -> DomainResult<()> {
         if let Some(parent) = self.output_dir.parent() {
             if !parent.exists() {
@@ -92,7 +72,6 @@ impl OutputDirectoryValidator {
         Ok(())
     }
 
-    /// Ensures the output directory exists, creating it if necessary.
     fn ensure_directory_exists(&self) -> DomainResult<()> {
         if !self.output_dir.exists() {
             std::fs::create_dir_all(&self.output_dir).map_err(|e| match e.kind() {
@@ -108,14 +87,11 @@ impl OutputDirectoryValidator {
         Ok(())
     }
 
-    /// Validates that the output directory is writable.
     fn validate_write_permissions(&self) -> DomainResult<()> {
-        // Try to create a temporary file to test write permissions
         let test_file = self.output_dir.join(".write_test");
 
         match std::fs::File::create(&test_file) {
             Ok(mut file) => {
-                // Try to write some data
                 if let Err(e) = file.write_all(b"test") {
                     let _ = std::fs::remove_file(&test_file);
                     return Err(ExtractionError::PermissionDenied(format!(
@@ -124,7 +100,6 @@ impl OutputDirectoryValidator {
                         e
                     )));
                 }
-                // Clean up test file
                 let _ = std::fs::remove_file(&test_file);
                 Ok(())
             }
@@ -136,7 +111,6 @@ impl OutputDirectoryValidator {
         }
     }
 
-    /// Validates that there is sufficient disk space.
     fn validate_disk_space(&self, required_mb: u64) -> DomainResult<()> {
         let available = self.get_available_disk_space()?;
         let available_mb = available.available_mb();
@@ -151,9 +125,7 @@ impl OutputDirectoryValidator {
         Ok(())
     }
 
-    /// Gets available disk space for the output directory.
     fn get_available_disk_space(&self) -> DomainResult<DiskSpaceInfo> {
-        // Use platform-specific methods to get disk space
         #[cfg(unix)]
         {
             self.get_disk_space_unix()
@@ -166,7 +138,6 @@ impl OutputDirectoryValidator {
 
         #[cfg(not(any(unix, windows)))]
         {
-            // Fallback for unsupported platforms
             Ok(DiskSpaceInfo {
                 available_bytes: u64::MAX,
                 total_bytes: u64::MAX,
@@ -174,7 +145,6 @@ impl OutputDirectoryValidator {
         }
     }
 
-    /// Gets disk space on Unix-like systems.
     #[cfg(unix)]
     fn get_disk_space_unix(&self) -> DomainResult<DiskSpaceInfo> {
         let _metadata = std::fs::metadata(&self.output_dir).map_err(|e| {
@@ -206,10 +176,9 @@ impl OutputDirectoryValidator {
         })
     }
 
-    /// Gets disk space on Windows.
     #[cfg(windows)]
     fn get_disk_space_windows(&self) -> DomainResult<DiskSpaceInfo> {
-        let metadata = std::fs::metadata(&self.output_dir).map_err(|e| {
+        let _metadata = std::fs::metadata(&self.output_dir).map_err(|e| {
             ExtractionError::OutputDirectoryNotFound(format!(
                 "Cannot access directory '{}': {}",
                 self.output_dir.display(),
@@ -217,9 +186,6 @@ impl OutputDirectoryValidator {
             ))
         })?;
 
-        // On Windows, we can use GetDiskFreeSpaceExW
-        // For simplicity, we'll return a large value as a fallback
-        // In production, you'd want to use winapi calls
         Ok(DiskSpaceInfo {
             available_bytes: u64::MAX / 2,
             total_bytes: u64::MAX,

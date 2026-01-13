@@ -25,7 +25,6 @@ pub enum Dependency {
 }
 
 impl Dependency {
-    /// Returns the command name for this dependency.
     pub fn command_name(&self) -> &str {
         match self {
             Dependency::YtDlp => "yt-dlp",
@@ -34,7 +33,6 @@ impl Dependency {
         }
     }
 
-    /// Returns the display name for this dependency.
     pub fn display_name(&self) -> &str {
         match self {
             Dependency::YtDlp => "yt-dlp",
@@ -43,7 +41,6 @@ impl Dependency {
         }
     }
 
-    /// Returns the minimum required version for this dependency.
     pub fn minimum_version(&self) -> Option<&str> {
         match self {
             Dependency::YtDlp => Some("2023.01.01"),
@@ -52,7 +49,6 @@ impl Dependency {
         }
     }
 
-    /// Returns installation instructions for this dependency.
     pub fn installation_instructions(&self) -> &str {
         match self {
             Dependency::YtDlp => {
@@ -74,7 +70,6 @@ impl Dependency {
         }
     }
 
-    /// Returns troubleshooting steps for this dependency.
     pub fn troubleshooting_steps(&self) -> Vec<&str> {
         match self {
             Dependency::YtDlp => vec![
@@ -108,22 +103,11 @@ impl std::fmt::Display for Dependency {
 /// Result of checking a single dependency.
 #[derive(Debug, Clone)]
 pub struct DependencyCheckResult {
-    /// The dependency that was checked
     pub dependency: Dependency,
-
-    /// Whether the dependency is available
     pub available: bool,
-
-    /// The installed version (if available)
     pub version: Option<String>,
-
-    /// Whether the version meets the minimum requirement
     pub version_ok: bool,
-
-    /// The path to the dependency executable (if found)
     pub path: Option<String>,
-
-    /// Any error message from the check
     pub error: Option<String>,
 }
 
@@ -160,41 +144,26 @@ impl DependencyCheckResult {
 }
 
 /// Checker for external dependencies.
-///
-/// This struct provides methods to check the availability and versions
-/// of external dependencies required by the application.
 pub struct DependencyChecker {
     /// Custom paths to search for dependencies
     custom_paths: HashMap<Dependency, String>,
 }
 
 impl DependencyChecker {
-    /// Creates a new dependency checker.
     pub fn new() -> Self {
         Self {
             custom_paths: HashMap::new(),
         }
     }
 
-    /// Sets a custom path for a dependency.
     pub fn with_custom_path(mut self, dependency: Dependency, path: String) -> Self {
         self.custom_paths.insert(dependency, path);
         self
     }
 
-    /// Checks a single dependency.
-    ///
-    /// # Arguments
-    ///
-    /// * `dependency` - The dependency to check
-    ///
-    /// # Returns
-    ///
-    /// A `DependencyCheckResult` with the check results
     pub fn check(&self, dependency: &Dependency) -> DependencyCheckResult {
         let command = self.get_command_path(dependency);
 
-        // Try to get version
         let version_result = self.get_version(dependency, &command);
 
         match version_result {
@@ -210,7 +179,6 @@ impl DependencyChecker {
                 }
             }
             Err(e) => {
-                // If version check failed, try to see if the command exists at all
                 let exists = self.command_exists(&command);
                 DependencyCheckResult {
                     dependency: dependency.clone(),
@@ -224,11 +192,6 @@ impl DependencyChecker {
         }
     }
 
-    /// Checks all dependencies.
-    ///
-    /// # Returns
-    ///
-    /// A vector of `DependencyCheckResult` for all dependencies
     pub fn check_all(&self) -> Vec<DependencyCheckResult> {
         vec![
             self.check(&Dependency::YtDlp),
@@ -238,11 +201,6 @@ impl DependencyChecker {
     }
 
     /// Checks all dependencies and returns an error if any are missing or invalid.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if all dependencies are available and meet requirements
-    /// * `Err(ExtractionError)` if any dependency is missing or invalid
     pub fn validate_all(&self) -> DomainResult<()> {
         let results = self.check_all();
         let failed: Vec<_> = results.iter().filter(|r| !r.is_ok()).collect();
@@ -258,7 +216,6 @@ impl DependencyChecker {
         }
     }
 
-    /// Returns the command path for a dependency.
     fn get_command_path(&self, dependency: &Dependency) -> String {
         self.custom_paths
             .get(dependency)
@@ -266,14 +223,11 @@ impl DependencyChecker {
             .unwrap_or_else(|| dependency.command_name().to_string())
     }
 
-    /// Checks if a command exists on the system.
     fn command_exists(&self, command: &str) -> bool {
-        // Try to run the command with --version flag
         Command::new(command).arg("--version").output().is_ok()
             || Command::new(command).arg("-version").output().is_ok()
     }
 
-    /// Gets the version of a dependency.
     fn get_version(&self, dependency: &Dependency, command: &str) -> Result<String, String> {
         let output = Command::new(command)
             .arg("--version")
@@ -281,7 +235,6 @@ impl DependencyChecker {
             .map_err(|e| format!("Failed to execute {}: {}", command, e))?;
 
         if !output.status.success() {
-            // Try alternative version flag
             let output = Command::new(command)
                 .arg("-version")
                 .output()
@@ -297,13 +250,11 @@ impl DependencyChecker {
         self.parse_version(dependency, &output.stdout)
     }
 
-    /// Parses the version from command output.
     fn parse_version(&self, dependency: &Dependency, output: &[u8]) -> Result<String, String> {
         let stdout = String::from_utf8_lossy(output);
 
         match dependency {
             Dependency::YtDlp => {
-                // yt-dlp version format: "2023.01.06"
                 if let Some(line) = stdout.lines().next() {
                     if let Some(version) = line.split_whitespace().nth(1) {
                         Ok(version.to_string())
@@ -315,7 +266,6 @@ impl DependencyChecker {
                 }
             }
             Dependency::FFmpeg => {
-                // FFmpeg version format: "ffmpeg version 5.1.2"
                 for line in stdout.lines() {
                     if line.contains("version") {
                         if let Some(version) = line.split("version ").nth(1) {
@@ -328,7 +278,6 @@ impl DependencyChecker {
                 Err("No version output found".to_string())
             }
             Dependency::Tesseract => {
-                // Tesseract version format: "tesseract 4.1.1"
                 if let Some(line) = stdout.lines().next() {
                     if let Some(version) = line.split_whitespace().nth(1) {
                         Ok(version.to_string())
@@ -342,7 +291,6 @@ impl DependencyChecker {
         }
     }
 
-    /// Checks if the installed version meets the minimum requirement.
     fn check_version_requirement(&self, dependency: &Dependency, version: &str) -> bool {
         if let Some(min_version) = dependency.minimum_version() {
             self.compare_versions(version, min_version) >= 0
@@ -352,11 +300,6 @@ impl DependencyChecker {
     }
 
     /// Compares two version strings.
-    ///
-    /// Returns:
-    /// * `> 0` if v1 > v2
-    /// * `= 0` if v1 == v2
-    /// * `< 0` if v1 < v2
     fn compare_versions(&self, v1: &str, v2: &str) -> i32 {
         let v1_parts: Vec<u32> = v1
             .split(|c: char| !c.is_ascii_digit())

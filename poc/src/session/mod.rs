@@ -94,7 +94,6 @@ pub struct SessionProgress {
 }
 
 impl SessionProgress {
-    /// Creates a new session progress.
     pub fn new(stage: impl Into<String>, total: u64) -> Self {
         Self {
             stage: stage.into(),
@@ -105,7 +104,6 @@ impl SessionProgress {
         }
     }
 
-    /// Updates the progress.
     pub fn update(&mut self, processed: u64, message: Option<String>) {
         self.processed = processed;
         self.percentage = if self.total > 0 {
@@ -116,7 +114,6 @@ impl SessionProgress {
         self.message = message;
     }
 
-    /// Increments the processed count.
     pub fn increment(&mut self) {
         self.update(self.processed.saturating_add(1), None);
     }
@@ -134,37 +131,18 @@ impl Default for SessionProgress {
 /// US-SESSION-01.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessingSession {
-    /// Unique session ID
     pub id: Id<Session>,
-
-    /// YouTube video URL being processed
     pub youtube_url: String,
-
-    /// Extraction configuration
     pub config: ExtractionConfig,
-
-    /// Current session state
     pub state: SessionState,
-
     /// Session creation timestamp (Unix timestamp in seconds)
     pub created_at: u64,
-
     /// Session completion timestamp (None if not completed)
     pub completed_at: Option<u64>,
-
-    /// Session progress
     pub progress: SessionProgress,
-
-    /// Error message if session failed
     pub error_message: Option<String>,
-
-    /// Number of unique slides found
     pub unique_slides: u64,
-
-    /// Number of frames processed
     pub frames_processed: u64,
-
-    /// Additional metadata
     pub metadata: HashMap<String, String>,
 }
 
@@ -173,15 +151,6 @@ impl ProcessingSession {
     ///
     /// This method creates a new session with a unique ID, initial state,
     /// and metadata as specified in US-SESSION-01.
-    ///
-    /// # Arguments
-    ///
-    /// * `youtube_url` - The YouTube video URL to process
-    /// * `config` - The extraction configuration
-    ///
-    /// # Returns
-    ///
-    /// A new `ProcessingSession` instance.
     pub fn new(youtube_url: String, config: ExtractionConfig) -> Self {
         let id = Id::<Session>::new();
         let created_at = SystemTime::now()
@@ -211,12 +180,6 @@ impl ProcessingSession {
         session
     }
 
-    /// Transitions the session to the processing state.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if transition succeeds
-    /// * `Err(ExtractionError)` if transition is invalid
     pub fn start_processing(&mut self) -> DomainResult<()> {
         if !self.state.can_process() {
             return Err(ExtractionError::InvalidConfig(format!(
@@ -235,12 +198,6 @@ impl ProcessingSession {
         Ok(())
     }
 
-    /// Marks the session as completed.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if transition succeeds
-    /// * `Err(ExtractionError)` if transition is invalid
     pub fn complete(&mut self) -> DomainResult<()> {
         if !self.state.can_complete() {
             return Err(ExtractionError::InvalidConfig(format!(
@@ -267,16 +224,6 @@ impl ProcessingSession {
         Ok(())
     }
 
-    /// Marks the session as failed.
-    ///
-    /// # Arguments
-    ///
-    /// * `error_message` - The error message describing the failure
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if transition succeeds
-    /// * `Err(ExtractionError)` if transition is invalid
     pub fn fail(&mut self, error_message: String) -> DomainResult<()> {
         if !self.state.can_fail() {
             return Err(ExtractionError::InvalidConfig(format!(
@@ -302,14 +249,6 @@ impl ProcessingSession {
         Ok(())
     }
 
-    /// Updates the session progress.
-    ///
-    /// # Arguments
-    ///
-    /// * `stage` - The current processing stage
-    /// * `processed` - Number of items processed
-    /// * `total` - Total number of items to process
-    /// * `message` - Optional message about current operation
     pub fn update_progress(
         &mut self,
         stage: impl Into<String>,
@@ -322,25 +261,10 @@ impl ProcessingSession {
         self.progress.update(processed, message);
     }
 
-    /// Sets metadata for the session.
-    ///
-    /// # Arguments
-    ///
-    /// * `key` - The metadata key
-    /// * `value` - The metadata value
     pub fn set_metadata(&mut self, key: impl Into<String>, value: impl Into<String>) {
         self.metadata.insert(key.into(), value.into());
     }
 
-    /// Gets metadata for the session.
-    ///
-    /// # Arguments
-    ///
-    /// * `key` - The metadata key
-    ///
-    /// # Returns
-    ///
-    /// An optional reference to the metadata value.
     pub fn get_metadata(&self, key: &str) -> Option<&String> {
         self.metadata.get(key)
     }
@@ -360,34 +284,17 @@ impl ProcessingSession {
         end.saturating_sub(self.created_at)
     }
 
-    /// Creates a tracing span for this session.
     pub fn span(&self) -> Span {
         let logging_session_id = Id::<LoggingSession>::from_uuid(self.id.as_uuid());
         session_span(Some(logging_session_id), &self.state.to_string(), "session")
     }
 
-    /// Serializes the session to JSON for persistence.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(String)` - JSON representation of the session
-    /// * `Err(ExtractionError)` - If serialization fails
     pub fn to_json(&self) -> DomainResult<String> {
         serde_json::to_string(self).map_err(|e| {
             ExtractionError::InternalError(format!("Failed to serialize session: {}", e))
         })
     }
 
-    /// Deserializes a session from JSON.
-    ///
-    /// # Arguments
-    ///
-    /// * `json` - JSON string to deserialize
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(ProcessingSession)` - Deserialized session
-    /// * `Err(ExtractionError)` - If deserialization fails
     pub fn from_json(json: &str) -> DomainResult<Self> {
         serde_json::from_str(json).map_err(|e| {
             ExtractionError::InternalError(format!("Failed to deserialize session: {}", e))
@@ -400,31 +307,18 @@ impl ProcessingSession {
 pub struct Session;
 
 /// Thread-safe session manager for handling multiple sessions.
-///
-/// This provides thread-safe access to sessions for concurrent processing.
 #[derive(Debug, Clone)]
 pub struct SessionManager {
     sessions: Arc<RwLock<HashMap<Id<Session>, ProcessingSession>>>,
 }
 
 impl SessionManager {
-    /// Creates a new session manager.
     pub fn new() -> Self {
         Self {
             sessions: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
-    /// Creates a new session and adds it to the manager.
-    ///
-    /// # Arguments
-    ///
-    /// * `youtube_url` - The YouTube video URL to process
-    /// * `config` - The extraction configuration
-    ///
-    /// # Returns
-    ///
-    /// The ID of the newly created session.
     pub fn create_session(
         &self,
         youtube_url: String,
@@ -442,16 +336,6 @@ impl SessionManager {
         Ok(id)
     }
 
-    /// Gets a session by ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The session ID
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(ProcessingSession)` - The session if found
-    /// * `Err(ExtractionError)` - If session not found or lock fails
     pub fn get_session(&self, id: Id<Session>) -> DomainResult<ProcessingSession> {
         let sessions = self.sessions.read().map_err(|e| {
             ExtractionError::InternalError(format!("Failed to acquire read lock: {}", e))
@@ -464,17 +348,6 @@ impl SessionManager {
         })
     }
 
-    /// Updates a session.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The session ID
-    /// * `update_fn` - Function to update the session
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` - If update succeeds
-    /// * `Err(ExtractionError)` - If session not found or lock fails
     pub fn update_session<F>(&self, id: Id<Session>, update_fn: F) -> DomainResult<()>
     where
         F: FnOnce(&mut ProcessingSession) -> DomainResult<()>,
@@ -494,16 +367,6 @@ impl SessionManager {
         Ok(())
     }
 
-    /// Removes a session from the manager.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The session ID
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(ProcessingSession)` - The removed session if found
-    /// * `Err(ExtractionError)` - If session not found or lock fails
     pub fn remove_session(&self, id: Id<Session>) -> DomainResult<ProcessingSession> {
         let mut sessions = self.sessions.write().map_err(|e| {
             ExtractionError::InternalError(format!("Failed to acquire write lock: {}", e))
@@ -516,11 +379,6 @@ impl SessionManager {
         })
     }
 
-    /// Lists all session IDs.
-    ///
-    /// # Returns
-    ///
-    /// A vector of all session IDs.
     pub fn list_sessions(&self) -> DomainResult<Vec<Id<Session>>> {
         let sessions = self.sessions.read().map_err(|e| {
             ExtractionError::InternalError(format!("Failed to acquire read lock: {}", e))
@@ -529,17 +387,6 @@ impl SessionManager {
         Ok(sessions.keys().copied().collect())
     }
 
-    /// Persists a session to a file.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - The session ID
-    /// * `path` - The file path to save to
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` - If persistence succeeds
-    /// * `Err(ExtractionError)` - If session not found or file operation fails
     pub fn persist_session(&self, id: Id<Session>, path: PathBuf) -> DomainResult<()> {
         let session = self.get_session(id)?;
         let json = session.to_json()?;
@@ -558,16 +405,6 @@ impl SessionManager {
         Ok(())
     }
 
-    /// Recovers a session from a file.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - The file path to read from
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(ProcessingSession)` - The recovered session
-    /// * `Err(ExtractionError)` - If file operation fails or deserialization fails
     pub fn recover_session(&self, path: PathBuf) -> DomainResult<ProcessingSession> {
         let json = std::fs::read_to_string(&path).map_err(|e| {
             ExtractionError::SessionRecoveryFailed(format!("Failed to read session file: {}", e))

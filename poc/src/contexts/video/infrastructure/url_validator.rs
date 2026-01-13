@@ -22,34 +22,19 @@ use url::Url;
 pub struct UrlValidator;
 
 impl UrlValidator {
-    /// Creates a new URL validator.
     pub fn new() -> Self {
         Self
     }
 
     /// Validates a YouTube URL and extracts the video ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `url_str` - The URL string to validate
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing the normalized URL and the video ID
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the URL is invalid or not a YouTube URL
     pub fn validate_and_extract(&self, url_str: &str) -> DomainResult<(String, Id<YouTubeVideo>)> {
         if url_str.is_empty() {
             return Err(ExtractionError::InvalidUrl("URL is empty".to_string()));
         }
 
-        // Parse the URL
         let parsed_url = Url::parse(url_str)
             .map_err(|e| ExtractionError::InvalidUrl(format!("Invalid URL format: {}", e)))?;
 
-        // Validate that it's a YouTube URL
         if !self.is_youtube_url(&parsed_url) {
             return Err(ExtractionError::InvalidUrl(format!(
                 "Not a valid YouTube URL: {}",
@@ -57,13 +42,10 @@ impl UrlValidator {
             )));
         }
 
-        // Extract video ID
         let video_id_str = self.extract_video_id(&parsed_url)?;
 
-        // Validate video ID format
         self.validate_video_id_format(&video_id_str)?;
 
-        // Parse video ID as UUID-compatible string
         let video_id: Id<YouTubeVideo> = video_id_str.parse().map_err(|_| {
             ExtractionError::InvalidUrl(format!("Invalid video ID format: {}", video_id_str))
         })?;
@@ -71,7 +53,6 @@ impl UrlValidator {
         Ok((url_str.to_string(), video_id))
     }
 
-    /// Checks if the URL is a YouTube URL.
     fn is_youtube_url(&self, url: &Url) -> bool {
         let host = url.host_str().unwrap_or("");
         host == "www.youtube.com"
@@ -81,7 +62,6 @@ impl UrlValidator {
             || host == "music.youtube.com"
     }
 
-    /// Extracts the video ID from a YouTube URL.
     fn extract_video_id(&self, url: &Url) -> DomainResult<String> {
         let host = url.host_str().unwrap_or("");
 
@@ -94,7 +74,6 @@ impl UrlValidator {
                     "No video ID found in URL".to_string(),
                 ));
             }
-            // Remove any query parameters
             Ok(video_id.split('?').next().unwrap_or(video_id).to_string())
         } else {
             // Standard YouTube URL formats
@@ -103,16 +82,13 @@ impl UrlValidator {
             // Short URL: https://www.youtube.com/shorts/VIDEO_ID
             // V URL: https://www.youtube.com/v/VIDEO_ID
 
-            // Try to extract from query parameters first
             if let Some(v) = url.query_pairs().find(|(k, _)| k == "v") {
                 return Ok(v.1.to_string());
             }
 
-            // Try to extract from path
             let path = url.path();
             let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
 
-            // Check for embed, shorts, or v format
             if segments.len() >= 2
                 && (segments[0] == "embed" || segments[0] == "shorts" || segments[0] == "v")
             {
@@ -125,7 +101,6 @@ impl UrlValidator {
         }
     }
 
-    /// Validates the format of a video ID.
     fn validate_video_id_format(&self, video_id: &str) -> DomainResult<()> {
         if video_id.is_empty() {
             return Err(ExtractionError::InvalidUrl("Video ID is empty".to_string()));
@@ -138,8 +113,6 @@ impl UrlValidator {
             )));
         }
 
-        // YouTube video IDs are typically alphanumeric with some special characters
-        // Common pattern: [a-zA-Z0-9_-]{10,12}
         let video_id_regex =
             VIDEO_ID_REGEX.get_or_init(|| Regex::new(r"^[a-zA-Z0-9_-]{10,12}$").unwrap());
 

@@ -77,24 +77,20 @@ impl Default for AvailabilityCheckerConfig {
 }
 
 impl AvailabilityCheckerConfig {
-    /// Creates a new availability checker config.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Sets the timeout for availability check.
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self
     }
 
-    /// Sets the maximum video duration.
     pub fn max_duration(mut self, max_duration: u64) -> Self {
         self.max_duration = max_duration;
         self
     }
 
-    /// Sets the minimum video duration.
     pub fn min_duration(mut self, min_duration: u64) -> Self {
         self.min_duration = min_duration;
         self
@@ -110,32 +106,17 @@ pub struct AvailabilityChecker {
 }
 
 impl AvailabilityChecker {
-    /// Creates a new availability checker with default config.
     pub fn new() -> Self {
         Self {
             config: AvailabilityCheckerConfig::default(),
         }
     }
 
-    /// Creates a new availability checker with custom config.
     pub fn with_config(config: AvailabilityCheckerConfig) -> Self {
         Self { config }
     }
 
     /// Checks if a video is available and retrieves its metadata.
-    ///
-    /// # Arguments
-    ///
-    /// * `video_id` - The video ID to check
-    /// * `url` - The full YouTube URL
-    ///
-    /// # Returns
-    ///
-    /// The video metadata if available
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the video is unavailable or the check fails
     pub async fn check_availability(
         &self,
         _video_id: &Id<YouTubeVideo>,
@@ -143,7 +124,6 @@ impl AvailabilityChecker {
     ) -> DomainResult<VideoMetadata> {
         let metadata = self.fetch_metadata(url).await?;
 
-        // Check duration constraints
         if self.config.max_duration > 0 && metadata.duration > self.config.max_duration {
             return Err(ExtractionError::VideoTooLong {
                 duration: metadata.duration,
@@ -158,7 +138,6 @@ impl AvailabilityChecker {
             )));
         }
 
-        // Check for age restriction
         if metadata.age_restricted {
             return Err(ExtractionError::VideoAgeRestricted);
         }
@@ -166,16 +145,6 @@ impl AvailabilityChecker {
         Ok(metadata)
     }
 
-    /// Checks the availability status of a video without retrieving full metadata.
-    ///
-    /// # Arguments
-    ///
-    /// * `video_id` - The video ID to check
-    /// * `url` - The full YouTube URL
-    ///
-    /// # Returns
-    ///
-    /// The availability status
     pub async fn check_status(
         &self,
         _video_id: &Id<YouTubeVideo>,
@@ -190,7 +159,6 @@ impl AvailabilityChecker {
                 }
             }
             Err(e) => {
-                // Parse error to determine specific status
                 let error_msg = e.to_string().to_lowercase();
 
                 if error_msg.contains("private") {
@@ -211,7 +179,6 @@ impl AvailabilityChecker {
         }
     }
 
-    /// Fetches video metadata using yt-dlp.
     async fn fetch_metadata(&self, url: &str) -> DomainResult<VideoMetadata> {
         let json_output = timeout(
             self.config.timeout,
@@ -230,8 +197,6 @@ impl AvailabilityChecker {
 
         if !json_output.status.success() {
             let stderr = String::from_utf8_lossy(&json_output.stderr);
-
-            // Parse specific error types
             let stderr_lower = stderr.to_lowercase();
 
             if stderr_lower.contains("private video") {
@@ -263,7 +228,6 @@ impl AvailabilityChecker {
         })
     }
 
-    /// Checks if yt-dlp is available and working.
     pub async fn check_ytdlp_available(&self) -> DomainResult<()> {
         let result = timeout(
             Duration::from_secs(2),
@@ -297,16 +261,12 @@ impl Default for AvailabilityChecker {
 /// Mock availability checker for testing.
 #[derive(Debug, Clone)]
 pub struct MockAvailabilityChecker {
-    /// Whether to return available status
     pub available: bool,
-    /// Metadata to return if available
     pub metadata: Option<VideoMetadata>,
-    /// Error to return if not available
     pub error: Option<ExtractionError>,
 }
 
 impl MockAvailabilityChecker {
-    /// Creates a new mock availability checker.
     pub fn new() -> Self {
         Self {
             available: true,
@@ -324,19 +284,16 @@ impl MockAvailabilityChecker {
         }
     }
 
-    /// Sets the availability status.
     pub fn with_available(mut self, available: bool) -> Self {
         self.available = available;
         self
     }
 
-    /// Sets the metadata to return.
     pub fn with_metadata(mut self, metadata: VideoMetadata) -> Self {
         self.metadata = Some(metadata);
         self
     }
 
-    /// Sets the error to return.
     pub fn with_error(mut self, error: ExtractionError) -> Self {
         self.error = Some(error);
         self

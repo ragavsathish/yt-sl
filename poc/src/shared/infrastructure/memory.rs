@@ -25,22 +25,18 @@ pub struct MemoryUsage {
 }
 
 impl MemoryUsage {
-    /// Returns current memory usage in megabytes.
     pub fn current_mb(&self) -> u64 {
         self.current_bytes / (1024 * 1024)
     }
 
-    /// Returns peak memory usage in megabytes.
     pub fn peak_mb(&self) -> u64 {
         self.peak_bytes / (1024 * 1024)
     }
 
-    /// Returns memory threshold in megabytes.
     pub fn threshold_mb(&self) -> u64 {
         self.threshold_bytes / (1024 * 1024)
     }
 
-    /// Returns memory utilization as a percentage of threshold.
     pub fn utilization_percent(&self) -> f64 {
         if self.threshold_bytes == 0 {
             0.0
@@ -51,9 +47,6 @@ impl MemoryUsage {
 }
 
 /// Memory monitor for tracking memory usage.
-///
-/// This struct tracks memory usage across the application
-/// and provides methods to check for memory threshold violations.
 pub struct MemoryMonitor {
     /// Peak memory usage in bytes
     peak_bytes: Arc<AtomicU64>,
@@ -64,13 +57,11 @@ pub struct MemoryMonitor {
     /// Warning threshold percentage (default: 80%)
     warning_threshold_percent: f64,
 
-    /// Optional mock for current memory usage (used in tests)
     #[cfg(test)]
     mock_current_bytes: Arc<AtomicU64>,
 }
 
 impl MemoryMonitor {
-    /// Creates a new memory monitor with default settings.
     pub fn new() -> Self {
         Self {
             peak_bytes: Arc::new(AtomicU64::new(0)),
@@ -81,12 +72,6 @@ impl MemoryMonitor {
         }
     }
 
-    /// Creates a new memory monitor with custom threshold.
-    ///
-    /// # Arguments
-    ///
-    /// * `threshold_mb` - Memory threshold in megabytes
-    /// * `warning_threshold_percent` - Warning threshold as percentage (0.0-1.0)
     pub fn with_threshold(threshold_mb: u64, warning_threshold_percent: f64) -> Self {
         Self {
             peak_bytes: Arc::new(AtomicU64::new(0)),
@@ -97,16 +82,10 @@ impl MemoryMonitor {
         }
     }
 
-    /// Records current memory usage.
-    ///
-    /// # Arguments
-    ///
-    /// * `bytes` - Current memory usage in bytes
     pub fn record_usage(&self, bytes: u64) {
         #[cfg(test)]
         self.mock_current_bytes.store(bytes, Ordering::Relaxed);
 
-        // Update peak if current usage is higher
         let current_peak = self.peak_bytes.load(Ordering::Relaxed);
         if bytes > current_peak {
             let _ = self.peak_bytes.compare_exchange(
@@ -118,7 +97,6 @@ impl MemoryMonitor {
         }
     }
 
-    /// Gets current memory usage information.
     pub fn get_usage(&self) -> MemoryUsage {
         let current_bytes = self.get_current_bytes();
         let peak_bytes = self.peak_bytes.load(Ordering::Relaxed);
@@ -131,8 +109,6 @@ impl MemoryMonitor {
     }
 
     /// Gets estimated current memory usage in bytes.
-    ///
-    /// This is an approximation based on system memory info.
     fn get_current_bytes(&self) -> u64 {
         #[cfg(test)]
         {
@@ -149,16 +125,12 @@ impl MemoryMonitor {
 
         #[cfg(not(unix))]
         {
-            // Fallback for non-Unix systems
-            // In production, you'd want platform-specific implementations
             self.peak_bytes.load(Ordering::Relaxed)
         }
     }
 
-    /// Gets current memory usage on Unix-like systems.
     #[cfg(unix)]
     fn get_current_bytes_unix(&self) -> u64 {
-        // Read /proc/self/status to get memory info
         if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
             for line in status.lines() {
                 if line.starts_with("VmRSS:") {
@@ -171,29 +143,20 @@ impl MemoryMonitor {
             }
         }
 
-        // Fallback to peak if we can't read current
         self.peak_bytes.load(Ordering::Relaxed)
     }
 
-    /// Checks if memory usage exceeds threshold.
     pub fn exceeds_threshold(&self) -> bool {
         let current_bytes = self.get_current_bytes();
         current_bytes > self.threshold_bytes
     }
 
-    /// Checks if memory usage is approaching threshold.
     pub fn approaching_threshold(&self) -> bool {
         let current_bytes = self.get_current_bytes();
         let warning_bytes = (self.threshold_bytes as f64 * self.warning_threshold_percent) as u64;
         current_bytes > warning_bytes
     }
 
-    /// Validates memory usage and returns an error if threshold is exceeded.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if memory usage is within limits
-    /// * `Err(ExtractionError)` if memory threshold is exceeded
     pub fn validate(&self) -> DomainResult<()> {
         if self.exceeds_threshold() {
             let usage = self.get_usage();
@@ -206,9 +169,6 @@ impl MemoryMonitor {
         Ok(())
     }
 
-    /// Checks if memory usage is approaching threshold and logs a warning.
-    ///
-    /// This method should be called periodically during processing.
     pub fn check_and_warn(&self) -> bool {
         if self.approaching_threshold() {
             let usage = self.get_usage();
