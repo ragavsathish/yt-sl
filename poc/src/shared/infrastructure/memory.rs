@@ -63,6 +63,10 @@ pub struct MemoryMonitor {
 
     /// Warning threshold percentage (default: 80%)
     warning_threshold_percent: f64,
+
+    /// Optional mock for current memory usage (used in tests)
+    #[cfg(test)]
+    mock_current_bytes: Arc<AtomicU64>,
 }
 
 impl MemoryMonitor {
@@ -72,6 +76,8 @@ impl MemoryMonitor {
             peak_bytes: Arc::new(AtomicU64::new(0)),
             threshold_bytes: 500 * 1024 * 1024, // 500 MB
             warning_threshold_percent: 0.8,     // 80%
+            #[cfg(test)]
+            mock_current_bytes: Arc::new(AtomicU64::new(0)),
         }
     }
 
@@ -86,6 +92,8 @@ impl MemoryMonitor {
             peak_bytes: Arc::new(AtomicU64::new(0)),
             threshold_bytes: threshold_mb * 1024 * 1024,
             warning_threshold_percent: warning_threshold_percent.clamp(0.0, 1.0),
+            #[cfg(test)]
+            mock_current_bytes: Arc::new(AtomicU64::new(0)),
         }
     }
 
@@ -95,6 +103,9 @@ impl MemoryMonitor {
     ///
     /// * `bytes` - Current memory usage in bytes
     pub fn record_usage(&self, bytes: u64) {
+        #[cfg(test)]
+        self.mock_current_bytes.store(bytes, Ordering::Relaxed);
+
         // Update peak if current usage is higher
         let current_peak = self.peak_bytes.load(Ordering::Relaxed);
         if bytes > current_peak {
@@ -123,6 +134,14 @@ impl MemoryMonitor {
     ///
     /// This is an approximation based on system memory info.
     fn get_current_bytes(&self) -> u64 {
+        #[cfg(test)]
+        {
+            let mock = self.mock_current_bytes.load(Ordering::Relaxed);
+            if mock > 0 {
+                return mock;
+            }
+        }
+
         #[cfg(unix)]
         {
             self.get_current_bytes_unix()
