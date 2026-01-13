@@ -18,15 +18,16 @@ All components will be implemented in Rust for performance, safety, and ease of 
 
 1. [Video Processing & FFmpeg](#video-processing--ffmpeg)
 2. [OCR (Text Recognition)](#ocr-text-recognition)
-3. [YouTube Video Download](#youtube-video-download)
-4. [Image Processing](#image-processing)
-5. [PowerPoint/Presentation Generation](#powerpointpresentation-generation)
-6. [CLI Framework](#cli-framework)
-7. [HTTP & Web](#http--web)
-8. [Additional Utilities](#additional-utilities)
-9. [Recommended Stack](#recommended-stack)
-10. [Architecture Recommendations](#architecture-recommendations)
-11. [Missing/Underdeveloped Areas](#missingunderdeveloped-areas)
+3. [Audio Transcription](#audio-transcription)
+4. [YouTube Video Download](#youtube-video-download)
+5. [Image Processing](#image-processing)
+6. [PowerPoint/Presentation Generation](#powerpointpresentation-generation)
+7. [CLI Framework](#cli-framework)
+8. [HTTP & Web](#http--web)
+9. [Additional Utilities](#additional-utilities)
+10. [Recommended Stack](#recommended-stack)
+11. [Architecture Recommendations](#architecture-recommendations)
+12. [Missing/Underdeveloped Areas](#missingunderdeveloped-areas)
 
 ---
 
@@ -159,6 +160,93 @@ All components will be implemented in Rust for performance, safety, and ease of 
 - **Use Case**: Advanced text extraction and NLP
 - **Pros**: Multi-language bindings, ML-focused
 - **Cons**: Overkill for simple OCR
+
+---
+
+## Audio Transcription
+
+### Top Transcription Libraries
+
+#### whisper-rs (638 ⭐) - RECOMMENDED
+- **Repository**: [tazz4843/whisper-rs](https://codeberg.org/tazz4843/whisper-rs)
+- **Description**: Rust bindings for OpenAI Whisper automatic speech recognition
+- **Features**:
+  - Multiple model sizes (tiny, base, small, medium, large)
+  - GPU acceleration support (CUDA, Metal, Vulkan, OpenCL)
+  - Multi-language support
+  - Timestamp extraction
+  - Active maintenance
+- **Use Case**: Primary audio transcription choice
+- **Pros**: Best maintained, GPU support, comprehensive Whisper bindings
+- **Cons**: Requires model download, larger memory usage
+
+#### candle-whisper (16.3k ⭐)
+- **Repository**: [huggingface/candle](https://github.com/huggingface/candle)
+- **Description**: Minimalist ML framework for Rust with Whisper support
+- **Features**:
+  - Part of Hugging Face's Candle ecosystem
+  - Metal/CUDA acceleration
+  - Pure Rust implementation
+  - Modern and active
+- **Use Case**: Alternative to whisper-rs with Candle ecosystem
+- **Pros**: Pure Rust, part of larger ML framework, modern
+- **Cons**: Less mature than whisper-rs, smaller community
+
+#### burn-whisper (5.7k ⭐)
+- **Repository**: [tracel-ai/burn](https://github.com/tracel-ai/burn)
+- **Description**: Deep learning framework in Rust with Whisper support
+- **Features**:
+  - Training and inference
+  - Multiple backend support
+  - Cross-platform
+- **Use Case**: ML-focused transcription with training needs
+- **Pros**: Training support, comprehensive ML framework
+- **Cons**: Overkill for simple inference, heavier dependency
+
+### Audio Extraction Libraries
+
+#### ffmpeg-sidecar (508 ⭐)
+- **Repository**: [nathanbabcock/ffmpeg-sidecar](https://github.com/nathanbabcock/ffmpeg-sidecar)
+- **Description**: Wrap a standalone FFmpeg binary in an intuitive Iterator interface
+- **Use Case**: Audio extraction from video
+- **Pros**: Simplest FFmpeg integration, cross-platform
+- **Cons**: Requires external FFmpeg binary
+
+#### symphonia (947 ⭐)
+- **Repository**: [pdeljanov/Symphonia](https://github.com/pdeljanov/Symphonia)
+- **Description**: Pure Rust audio decoding and media demuxing library
+- **Features**:
+  - Multiple format support (MP3, WAV, AAC, FLAC, OGG)
+  - Pure Rust implementation
+  - No external dependencies
+- **Use Case**: Audio-only processing without FFmpeg
+- **Pros**: Pure Rust, no external dependencies
+- **Cons**: Limited format support compared to FFmpeg
+
+### Recommended Transcription Stack
+
+Add `whisper-rs` with platform-specific GPU acceleration features, along with `ffmpeg-sidecar` for audio extraction or `symphonia` for pure Rust audio processing.
+
+### Transcription Requirements
+
+#### Whisper Audio Format
+Whisper requires audio in specific format:
+- **Format**: WAV (PCM)
+- **Sample Rate**: 16,000 Hz
+- **Channels**: 1 (Mono)
+- **Bit Depth**: 16-bit
+
+#### Model Selection
+- **tiny.en** (~39MB): Fastest, ~74% accuracy
+- **base.en** (~74MB): Fast, ~86% accuracy
+- **small.en** (~464MB): Recommended, ~90% accuracy (RECOMMENDED)
+- **medium.en** (~1.5GB): Slower, ~93% accuracy
+- **large-v3** (~3.0GB): Slowest, ~94% accuracy
+
+#### GPU Acceleration
+- **macOS (Apple Silicon)**: Use `metal` feature flag
+- **NVIDIA GPUs**: Use `cuda` feature flag
+- **Others**: Use `vulkan` or `opencl` feature flags
 
 ---
 
@@ -588,52 +676,21 @@ All components will be implemented in Rust for performance, safety, and ease of 
 
 ### Core Dependencies
 
-```toml
-[dependencies]
-# Video processing
-video-rs = "0.12"
-ffmpeg-sidecar = "0.17"  # or video-rs for pure Rust
+Include the following crates in your project:
 
-# OCR
-ocrs = "0.7"  # Primary choice
-# OR
-rust-paddle-ocr = "0.4"  # Multi-language support
-
-# YouTube download
-yaydl = "0.10"  # or use as subprocess
-rafy-rs = "0.2"  # For metadata extraction
-
-# Image processing
-photon = "0.10"
-imageproc = "0.23"
-image = "0.24"  # For perceptual hashing
-
-# PowerPoint
-openxml-office = "0.4"
-
-# CLI
-clap = { version = "4.4", features = ["derive"] }
-indicatif = "0.17"
-
-# HTTP
-reqwest = { version = "0.11", features = ["json"] }
-tokio = { version = "1.35", features = ["full"] }
-
-# Error handling
-anyhow = "1.0"
-thiserror = "1.0"
-
-# Hashing
-blake3 = "1.5"
-
-# Logging
-tracing = "0.1"
-tracing-subscriber = "0.3"
-
-# Serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-```
+- **Video Processing**: `video-rs` or `ffmpeg-sidecar`
+- **OCR**: `ocrs` (primary) or `rust-paddle-ocr` (multi-language)
+- **Audio Transcription**: `whisper-rs` with GPU features, optionally `symphonia`
+- **YouTube Download**: `yaydl` or `rafy-rs`
+- **Image Processing**: `photon`, `imageproc`, `image`
+- **PowerPoint**: `openxml-office`
+- **CLI**: `clap` with derive features, `indicatif`
+- **HTTP**: `reqwest` with json features
+- **Async Runtime**: `tokio` with full features
+- **Error Handling**: `anyhow`, `thiserror`
+- **Hashing**: `blake3`
+- **Logging**: `tracing`, `tracing-subscriber`
+- **Serialization**: `serde` with derive features, `serde_json`
 
 ---
 
@@ -649,29 +706,7 @@ serde_json = "1.0"
 - Progress display
 - User interaction
 
-**Example Structure**:
-```rust
-use clap::{Parser, Subcommand};
-use indicatif::{ProgressBar, ProgressStyle};
-
-#[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    Extract {
-        url: String,
-        #[arg(short, long, default_value = "30")]
-        interval: u32,
-        #[arg(short, long)]
-        output: Option<String>,
-    },
-}
-```
+Use clap's derive API for parsing commands with subcommands, arguments, and validation. Combine with `indicatif` for progress tracking during long-running operations.
 
 ### 2. Async Runtime Layer
 **Libraries**: `tokio`, `futures`
@@ -682,19 +717,7 @@ enum Commands {
 - I/O operations
 - Timeout management
 
-**Example Structure**:
-```rust
-#[tokio::main]
-async fn main() -> Result<()> {
-    let cli = Cli::parse();
-    match cli.command {
-        Commands::Extract { url, interval, output } => {
-            extract_slides(url, interval, output).await?;
-        }
-    }
-    Ok(())
-}
-```
+Initialize tokio runtime with full features, parse CLI arguments, and dispatch to appropriate async handlers for each subcommand.
 
 ### 3. Video Download Layer
 **Libraries**: `yaydl` (subprocess) or `rafy-rs`
@@ -705,15 +728,7 @@ async fn main() -> Result<()> {
 - Chapter/timestamp retrieval
 - Progress reporting
 
-**Example Structure**:
-```rust
-async fn download_video(url: &str, output: &str) -> Result<VideoMetadata> {
-    let progress = ProgressBar::new(100);
-    // Use yaydl as subprocess or rafy-rs library
-    let metadata = download_with_progress(url, output, progress).await?;
-    Ok(metadata)
-}
-```
+Download video using yaydl as subprocess or rafy-rs library. Track progress with indicatif progress bar and extract metadata including title, description, and chapter information.
 
 ### 4. Video Processing Layer
 **Libraries**: `video-rs` or `ffmpeg-sidecar`
@@ -724,21 +739,7 @@ async fn download_video(url: &str, output: &str) -> Result<VideoMetadata> {
 - Timestamp tracking
 - Format handling
 
-**Example Structure**:
-```rust
-use video_rs::{Decoder, DecoderConfig};
-
-fn extract_frames(video_path: &str, interval: u32) -> Result<Vec<Frame>> {
-    let decoder = Decoder::new(video_path)?;
-    let mut frames = Vec::new();
-    for (i, frame) in decoder.enumerate().enumerate() {
-        if i % interval as usize == 0 {
-            frames.push(frame?);
-        }
-    }
-    Ok(frames)
-}
-```
+Create decoder from video file path, iterate through frames, and collect frames at specified intervals. Handle frame decoding errors and track timestamps for each extracted frame.
 
 ### 5. Image Processing Layer
 **Libraries**: `photon`, `image`
@@ -749,24 +750,7 @@ fn extract_frames(video_path: &str, interval: u32) -> Result<Vec<Frame>> {
 - Image manipulation
 - Quality analysis
 
-**Example Structure**:
-```rust
-use image::{GenericImageView, ImageBuffer};
-use photon::PhotonImage;
-
-fn compute_perceptual_hash(image: &ImageBuffer<Rgb<u8>>) -> u64 {
-    // Convert to grayscale
-    // Resize to small size
-    // Compute average hash
-    // Return hash value
-}
-
-fn is_unique(current_hash: u64, previous_hashes: &[u64], threshold: u8) -> bool {
-    previous_hashes.iter().all(|&h| {
-        hamming_distance(current_hash, h) > threshold
-    })
-}
-```
+Convert image to grayscale, resize to small dimensions, compute average perceptual hash. Use Hamming distance to compare hashes against previously seen frames and determine uniqueness based on configurable threshold.
 
 ### 6. OCR Layer
 **Libraries**: `ocrs` or `rust-paddle-ocr`
@@ -777,18 +761,21 @@ fn is_unique(current_hash: u64, previous_hashes: &[u64], threshold: u8) -> bool 
 - Confidence scoring
 - Post-processing
 
-**Example Structure**:
-```rust
-use ocrs::OcrEngine;
+Initialize OCR engine, pass image to recognizer, and return results with text, bounding boxes, and confidence scores. Handle multi-language requests and post-process results.
 
-async fn extract_text(image: &DynamicImage) -> Result<OcrResult> {
-    let engine = OcrEngine::new()?;
-    let result = engine.recognize(image)?;
-    Ok(result)
-}
-```
+### 7. Audio Transcription Layer
+**Libraries**: `whisper-rs`, `ffmpeg-sidecar` or `symphonia`
 
-### 7. Deduplication Layer
+**Responsibilities**:
+- Audio extraction from video
+- Audio format conversion (to 16kHz mono WAV)
+- Speech-to-text transcription
+- Timestamp extraction
+- Model management
+
+Extract audio track from video using FFmpeg, convert to Whisper-compatible format (16kHz mono PCM WAV), load appropriate Whisper model (small.en recommended), configure parameters including language and sampling strategy, perform transcription with GPU acceleration if available, and extract text with timestamps.
+
+### 8. Deduplication Layer
 **Libraries**: `image`, `blake3`
 
 **Responsibilities**:
@@ -797,34 +784,9 @@ async fn extract_text(image: &DynamicImage) -> Result<OcrResult> {
 - Similarity measurement
 - Hash storage
 
-**Example Structure**:
-```rust
-struct Slide {
-    image: DynamicImage,
-    hash: u64,
-    timestamp: Duration,
-    text: String,
-}
+Maintain a set of previously seen perceptual hashes. For each new frame, compute Hamming distance against all seen hashes. If all distances exceed threshold, mark as unique and add to set. Track timestamp and associated text for each unique slide.
 
-struct Deduplicator {
-    seen_hashes: HashSet<u64>,
-    threshold: u8,
-}
-
-impl Deduplicator {
-    fn is_unique(&mut self, hash: u64) -> bool {
-        let unique = self.seen_hashes.iter().all(|&h| {
-            hamming_distance(hash, h) > self.threshold
-        });
-        if unique {
-            self.seen_hashes.insert(hash);
-        }
-        unique
-    }
-}
-```
-
-### 8. Export Layer
+### 9. Export Layer
 **Libraries**: `openxml-office`
 
 **Responsibilities**:
@@ -834,45 +796,7 @@ impl Deduplicator {
 - Image insertion
 - File output
 
-**Example Structure**:
-```rust
-use openxml_office::pptx::{Presentation, Slide, Text};
-
-fn create_presentation(slides: Vec<Slide>, output: &str) -> Result<()> {
-    let mut presentation = Presentation::new();
-    for slide in slides {
-        let mut ppt_slide = presentation.add_slide();
-        ppt_slide.add_image(&slide.image)?;
-        ppt_slide.add_text(&slide.text)?;
-    }
-    presentation.save(output)?;
-    Ok(())
-}
-```
-
-### 9. Optimization Layer
-**Libraries**: `tokio`, `rayon`
-
-**Responsibilities**:
-- Parallel frame processing
-- Concurrent OCR
-- Batch operations
-- Resource management
-
-**Example Structure**:
-```rust
-use rayon::prelude::*;
-
-async fn process_slides_parallel(slides: Vec<Frame>) -> Vec<ProcessedSlide> {
-    slides.par_iter()
-        .map(|frame| {
-            let hash = compute_hash(frame)?;
-            let text = extract_text(frame)?;
-            Ok(ProcessedSlide { hash, text, frame })
-        })
-        .collect()
-}
-```
+Create new presentation, iterate through unique slides, add each as new slide with image and text content, apply layout and formatting, save to output file path. Handle image scaling and positioning within slide bounds.
 
 ---
 
@@ -980,14 +904,7 @@ async fn process_slides_parallel(slides: Vec<Frame>) -> Vec<ProcessedSlide> {
 - Non-blocking I/O operations
 - Better responsiveness
 
-**Example**:
-```rust
-use rayon::prelude::*;
-
-let processed: Vec<_> = frames.par_iter()
-    .map(|f| process_frame(f))
-    .collect();
-```
+Use Rayon's parallel iterators to process frames concurrently across available CPU cores while Tokio handles async I/O operations.
 
 ### 2. Memory Management
 **Strategy**: Process frames in batches
@@ -997,17 +914,7 @@ let processed: Vec<_> = frames.par_iter()
 - Reduce peak memory usage
 - Enable processing of large videos
 
-**Example**:
-```rust
-const BATCH_SIZE: usize = 100;
-
-for batch in frames.chunks(BATCH_SIZE) {
-    let processed: Vec<_> = batch.par_iter()
-        .map(|f| process_frame(f))
-        .collect();
-    // Process batch
-}
-```
+Process frames in fixed-size batches, releasing memory after each batch completes. Use streaming approach for video decoding instead of loading entire file.
 
 ### 3. Caching
 **Strategy**: Cache intermediate results
@@ -1018,21 +925,20 @@ for batch in frames.chunks(BATCH_SIZE) {
 - Resume interrupted jobs
 
 **Implementation**:
-```rust
-use sled::Db;
+Use embedded database like sled or RocksDB to cache intermediate results with keys based on input parameters. Check cache before processing and store results after successful computation.
 
-let db = Db::open("cache")?;
+### 4. GPU Acceleration for Transcription
+**Strategy**: Leverage hardware acceleration for Whisper
 
-fn get_or_compute<T>(db: &Db, key: &str, compute: impl FnOnce() -> T) -> T {
-    if let Some(cached) = db.get(key) {
-        // Deserialize and return
-    } else {
-        let result = compute();
-        // Cache result
-        result
-    }
-}
-```
+**Benefits**:
+- 10-50x faster transcription on GPU
+- Lower CPU usage
+- Better energy efficiency
+
+**Platform-specific Flags**:
+- macOS (Apple Silicon): Use `metal` feature
+- NVIDIA GPUs: Use `cuda` feature
+- Other GPUs: Use `vulkan` feature
 
 ---
 
@@ -1093,18 +999,7 @@ fn get_or_compute<T>(db: &Db, key: &str, compute: impl FnOnce() -> T) -> T {
 ### 2. Docker Image
 **Strategy**: Multi-stage build for minimal size
 
-**Example**:
-```dockerfile
-FROM rust:1.75 as builder
-WORKDIR /app
-COPY . .
-RUN cargo build --release
-
-FROM debian:bookworm-slim
-COPY --from=builder /app/target/release/yt-slides /usr/local/bin/
-RUN apt-get update && apt-get install -y ffmpeg tesseract-ocr
-ENTRYPOINT ["yt-slides"]
-```
+Use Rust image for building, then copy binary to slim base image with only necessary runtime dependencies (FFmpeg, OCR, Whisper models).
 
 ### 3. Package Managers
 **Targets**:
@@ -1190,7 +1085,7 @@ ENTRYPOINT ["yt-slides"]
 ### 1. Advanced Features
 - Scene-aware extraction
 - Smart transition detection
-- Audio transcription integration
+- Multi-language audio models
 - Multi-language OCR
 
 ### 2. Export Formats
@@ -1220,10 +1115,11 @@ The Rust ecosystem provides comprehensive tools for building a YouTube video sli
 ### Key Recommendations:
 1. Use `video-rs` or `ffmpeg-sidecar` for video processing
 2. Choose `ocrs` for simplicity or `rust-paddle-ocr` for multi-language
-3. Use `yaydl` as subprocess for YouTube download
-4. Leverage `photon` and `image` for image processing and hashing
-5. Use `openxml-office` for PowerPoint generation
-6. Build with `tokio` and `clap` for async runtime and CLI
-7. Implement parallel processing with `rayon` for performance
+3. Use `whisper-rs` with Metal/CUDA acceleration for audio transcription
+4. Use `yaydl` as subprocess for YouTube download
+5. Leverage `photon` and `image` for image processing and hashing
+6. Use `openxml-office` for PowerPoint generation
+7. Build with `tokio` and `clap` for async runtime and CLI
+8. Implement parallel processing with `rayon` for performance
 
 The ecosystem is mature enough to build a robust, high-performance CLI application that can compete with Python-based solutions while offering superior performance and distribution characteristics.
