@@ -64,7 +64,8 @@ async fn handle_command(
 
 ### External Dependencies
 - **yt-dlp**: Video downloading
-- **FFmpeg**: Frame extraction
+- **FFmpeg**: Frame extraction, audio extraction
+- **Whisper**: Audio transcription
 - **Tesseract**: OCR processing
 - **Tera**: Markdown templating
 
@@ -151,6 +152,8 @@ pub type DomainResult<T> = Result<T, ExtractionError>;
 |-------|---------|--------------|
 | `VideoUrlValidated` | `url: String`, `video_id: Id<YouTubeVideo>` | URL validated successfully |
 | `VideoDownloaded` | `video_id: Id<YouTubeVideo>`, `path: PathBuf`, `duration: Duration` | Download completes |
+| `AudioExtracted` | `video_id: Id<YouTubeVideo>`, `path: PathBuf`, `duration: Duration` | Audio extraction completes |
+| `TextTranscribed` | `video_id: Id<YouTubeVideo>`, `transcript: String`, `segments: Vec<TranscriptSegment>` | Transcription completes |
 | `FrameExtracted` | `session_id: Id<Session>`, `frame_number: u32`, `timestamp: Duration`, `hash: HashValue` | Frame captured |
 | `UniqueSlideIdentified` | `slide_id: Id<Slide>`, `frame_id: Id<Frame>`, `image_path: PathBuf` | Slide determined unique |
 | `TextExtracted` | `slide_id: Id<Slide>`, `text: String`, `confidence: f32`, `language: Language` | OCR completes |
@@ -165,6 +168,8 @@ pub type DomainResult<T> = Result<T, ExtractionError>;
 pub enum ExtractionEvent {
     VideoUrlValidated(VideoUrlValidated),
     VideoDownloaded(VideoDownloaded),
+    AudioExtracted(AudioExtracted),
+    TextTranscribed(TextTranscribed),
     FrameExtracted(FrameExtracted),
     UniqueSlideIdentified(UniqueSlideIdentified),
     TextExtracted(TextExtracted),
@@ -176,6 +181,27 @@ pub enum ExtractionEvent {
 pub struct VideoUrlValidated {
     pub url: String,
     pub video_id: Id<YouTubeVideo>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AudioExtracted {
+    pub video_id: Id<YouTubeVideo>,
+    pub path: PathBuf,
+    pub duration: Duration,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TextTranscribed {
+    pub video_id: Id<YouTubeVideo>,
+    pub transcript: String,
+    pub segments: Vec<TranscriptSegment>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TranscriptSegment {
+    pub start_time: Duration,
+    pub end_time: Duration,
+    pub text: String,
 }
 ```
 
@@ -205,6 +231,8 @@ graph TB
 |---------|-------|--------|--------------|
 | `ExtractSlidesFromVideo` | `url: String`, `config: ExtractionConfig` | `SessionStarted` | Creates session |
 | `DownloadVideo` | `video_id: Id<YouTubeVideo>` | `VideoDownloaded` | Saves video file |
+| `ExtractAudio` | `video_id: Id<YouTubeVideo>` | `AudioExtracted` | Extracts WAV audio |
+| `TranscribeAudio` | `video_id: Id<YouTubeVideo>` | `TextTranscribed` | Runs Whisper |
 | `ExtractFrame` | `session_id: Id<Session>`, `timestamp: Duration` | `FrameExtracted` | Captures frame |
 | `IdentifyUniqueSlide` | `frame_hashes: Vec<(Id<Frame>, HashValue)>` | `Vec<UniqueSlideIdentified>` | Saves slide images |
 | `ExtractText` | `slide_id: Id<Slide>` | `TextExtracted` | Runs OCR |
@@ -218,6 +246,8 @@ graph TB
 pub enum ExtractionCommand {
     ExtractSlidesFromVideo(ExtractSlidesFromVideoCommand),
     DownloadVideo(DownloadVideoCommand),
+    ExtractAudio(ExtractAudioCommand),
+    TranscribeAudio(TranscribeAudioCommand),
     ExtractFrame(ExtractFrameCommand),
     IdentifyUniqueSlide(IdentifyUniqueSlideCommand),
     ExtractText(ExtractTextCommand),
@@ -228,6 +258,17 @@ pub enum ExtractionCommand {
 pub struct ExtractSlidesFromVideoCommand {
     pub url: String,
     pub config: ExtractionConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExtractAudioCommand {
+    pub video_id: Id<YouTubeVideo>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TranscribeAudioCommand {
+    pub video_id: Id<YouTubeVideo>,
+    pub model_size: ModelSize,
 }
 ```
 
@@ -269,6 +310,8 @@ pub async fn handle_download_video(
 |-------|------|----------------|
 | `validate_video_url` | `fn(String) -> Result<Id<Video>, Error>` | URL validation |
 | `download_video` | `async fn(Id<Video>) -> Result<VideoFile, Error>` | Video download |
+| `extract_audio` | `async fn(VideoFile) -> Result<AudioFile, Error>` | Audio extraction |
+| `transcribe_audio` | `async fn(AudioFile) -> Result<Transcript, Error>` | Speech-to-text |
 | `extract_frame` | `async fn(VideoFile, Duration) -> Result<Frame, Error>` | Frame extraction |
 | `compute_hash` | `fn(&Image) -> HashValue` | Perceptual hashing |
 | `is_unique_slide` | `fn(HashValue, &HashSet<HashValue>) -> bool` | Deduplication |
@@ -338,6 +381,51 @@ pub struct VideoFrame {
     pub timestamp: Duration,
     pub hash: HashValue,
     pub image_path: PathBuf,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AudioFile {
+    pub id: Id<AudioFile>,
+    pub video_id: Id<YouTubeVideo>,
+    pub path: PathBuf,
+    pub format: AudioFormat,
+    pub sample_rate: u32,
+    pub channels: u8,
+    pub duration: Duration,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Transcript {
+    pub id: Id<Transcript>,
+    pub video_id: Id<YouTubeVideo>,
+    pub text: String,
+    pub segments: Vec<TranscriptSegment>,
+    pub language: Language,
+    pub model_used: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TranscriptSegment {
+    pub start_time: Duration,
+    pub end_time: Duration,
+    pub text: String,
+    pub confidence: Option<f32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum AudioFormat {
+    WAV,
+    MP3,
+    FLAC,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ModelSize {
+    Tiny,
+    Base,
+    Small,
+    Medium,
+    Large,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -448,6 +536,13 @@ graph TB
         V3[Video State]
     end
 
+     subgraph TRANSCRIPTION["TRANSCRIPTION CONTEXT"]
+         T1[Audio Extractor]
+         T2[Whisper Transcriber]
+         T3[Model Manager]
+         T4[Transcript State]
+     end
+
     subgraph FRAME["FRAME CONTEXT"]
         F1[Frame Extractor]
         F2[Hash Calculator]
@@ -471,6 +566,8 @@ graph TB
 
     CLI -->|Commands| SESSION
     VIDEO -->|VideoDownloaded| SESSION
+    TRANSCRIPTION -->|AudioExtracted| SESSION
+    TRANSCRIPTION -->|TextTranscribed| SESSION
     FRAME -->|FrameExtracted| SESSION
     DEDUP -->|UniqueSlideIdentified| SESSION
     OCR -->|TextExtracted| SESSION
@@ -513,6 +610,7 @@ contexts/
 | **CLI Interface** | User interaction | `CliCommand`, `UserArguments` | clap, indicatif |
 | **Session** | Orchestration | `Session`, `SessionState`, `ExtractionEvent` | tokio, tracing |
 | **Video** | YouTube interaction | `YouTubeVideo`, `VideoURL`, `VideoFile` | yt-dlp, HTTP |
+| **Transcription** | Audio extraction, speech-to-text | `AudioFile`, `Transcript`, `TranscriptSegment` | FFmpeg, whisper-rs |
 | **Frame** | Frame extraction | `VideoFrame`, `VideoStream`, `FrameTimestamp` | FFmpeg, image |
 | **Deduplication** | Slide identification | `Slide`, `HashValue`, `Similarity` | image_hash |
 | **OCR** | Text recognition | `Slide`, `ExtractedText`, `OCRConfidence` | Tesseract |
@@ -540,6 +638,12 @@ pub enum ExtractionError {
     // Processing failures
     #[error("Download failed after {0} retries: {1}")]
     DownloadFailed(u8, String),
+
+    #[error("Audio extraction failed: {0}")]
+    AudioExtractionFailed(String),
+
+    #[error("Transcription failed: {0}")]
+    TranscriptionFailed(String),
 
     #[error("Frame extraction failed: {0}")]
     FrameExtractionFailed(String),
@@ -720,6 +824,114 @@ mod tests {
 - Display real-time progress
 - Handle session recovery
 - [NEW] Prompt for conditional cleanup of tagged frames
+
+---
+
+## Key Business Rules (Functional Style)
+
+```rust
+// Business rule: Videos must be publicly accessible YouTube URLs
+pub fn validate_video_url(url: &str) -> Result<Id<YouTubeVideo>, ExtractionError> {
+    if !is_valid_youtube_url(url) {
+        return Err(ExtractionError::InvalidUrl(url.to_string()));
+    }
+
+    Ok(extract_video_id(url))
+}
+
+// Business rule: Slides must exceed similarity threshold
+pub fn is_unique_slide(
+    new_hash: &HashValue,
+    existing_hashes: &HashSet<HashValue>,
+    threshold: f32,
+) -> bool {
+    !existing_hashes.iter().any(|hash| new_hash.similarity(hash) >= threshold)
+}
+
+// Business rule: Audio must be in 16kHz mono WAV format
+pub fn validate_audio_format(
+    sample_rate: u32,
+    channels: u8,
+    format: AudioFormat,
+) -> Result<(), ExtractionError> {
+    if sample_rate != 16000 {
+        return Err(ExtractionError::InvalidAudioFormat(
+            format!("Sample rate must be 16000Hz, got {sample_rate}Hz")
+        ));
+    }
+    if channels != 1 {
+        return Err(ExtractionError::InvalidAudioFormat(
+            format!("Audio must be mono, got {channels} channels")
+        ));
+    }
+    if !matches!(format, AudioFormat::WAV) {
+        return Err(ExtractionError::InvalidAudioFormat(
+            format!("Audio format must be WAV, got {:?}", format)
+        ));
+    }
+    Ok(())
+}
+
+// Business rule: Whisper model must be cached
+pub fn ensure_model_cached(
+    model_size: ModelSize,
+) -> Result<(), ExtractionError> {
+    let model_path = get_model_path(model_size);
+    if !model_path.exists() {
+        return Err(ExtractionError::ModelNotFound(format!(
+            "Whisper model {:?} not found. Please download or run auto-download.",
+            model_size
+        )));
+    }
+    Ok(())
+}
+
+// Business rule: All temporary files are cleaned up
+pub fn cleanup_temp_files(paths: Vec<PathBuf>) -> Result<(), ExtractionError> {
+    paths.into_iter()
+        .map(|path| std::fs::remove_file(&path)
+            .map_err(|e| ExtractionError::CleanupFailed(path, e.to_string())))
+        .collect()
+}
+```
+
+---
+
+## Success Metrics
+
+**Functional Requirements**
+- Extract unique slides from YouTube videos (95% accuracy)
+- Generate Markdown with embedded images
+- Extract text via OCR (80%+ accuracy on clear text)
+- Transcribe audio from YouTube videos (English, Whisper Small model)
+- Handle videos up to 4 hours length
+
+**Quality Metrics**
+- Test coverage > 80%
+- Zero unsafe code in domain layer
+- All property tests passing
+
+**Performance Metrics**
+- < 5 minutes processing for 30-minute video
+- Memory usage < 500MB during processing
+- Zero-copy operations where possible
+
+---
+
+## Implementation Phases
+
+| Phase | Duration | Deliverables |
+|-------|----------|--------------|
+| 1: Core Types | Week 1 | ID types, error types, basic event/command structures |
+| 2: Video Context | Week 2-3 | URL validation, video download, video events |
+| 3: Frame Context | Week 4 | Frame extraction, hashing, frame events |
+| 4: Deduplication Context | Week 5 | Similarity calculation, slide identification |
+| 5: OCR Context | Week 6-7 | Text extraction, language detection |
+| 6: Document Context | Week 8 | Markdown generation, templating |
+| 7: Session Context | Week 9 | Orchestration, event bus, state projections |
+| 8: CLI & Polish | Week 10-11 | CLI interface, progress display, error messages |
+| 9: Testing | Week 12 | Unit, integration, property tests |
+| 10: Documentation | Week 13-14 | User docs, API docs, architecture docs |
 
 ---
 
