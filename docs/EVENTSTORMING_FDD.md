@@ -154,6 +154,7 @@ pub type DomainResult<T> = Result<T, ExtractionError>;
 | `FrameExtracted` | `session_id: Id<Session>`, `frame_number: u32`, `timestamp: Duration`, `hash: HashValue` | Frame captured |
 | `UniqueSlideIdentified` | `slide_id: Id<Slide>`, `frame_id: Id<Frame>`, `image_path: PathBuf` | Slide determined unique |
 | `TextExtracted` | `slide_id: Id<Slide>`, `text: String`, `confidence: f32`, `language: Language` | OCR completes |
+| `SlideVerified` | `slide_id: Id<Slide>`, `is_slide: bool`, `reason: String` | LLM verification completes |
 | `MarkdownGenerated` | `session_id: Id<Session>`, `path: PathBuf`, `slide_count: u32` | Document created |
 | `SessionCompleted` | `session_id: Id<Session>`, `duration: Duration` | All steps done |
 
@@ -207,6 +208,7 @@ graph TB
 | `ExtractFrame` | `session_id: Id<Session>`, `timestamp: Duration` | `FrameExtracted` | Captures frame |
 | `IdentifyUniqueSlide` | `frame_hashes: Vec<(Id<Frame>, HashValue)>` | `Vec<UniqueSlideIdentified>` | Saves slide images |
 | `ExtractText` | `slide_id: Id<Slide>` | `TextExtracted` | Runs OCR |
+| `VerifySlide` | `slide_id: Id<Slide>`, `image_path: PathBuf`, `config: LlmConfig` | `SlideVerified` | Runs Cloud LLM verification |
 | `GenerateMarkdown` | `session_id: Id<Session>` | `MarkdownGenerated` | Writes file |
 
 ### Command Definition Pattern
@@ -271,6 +273,7 @@ pub async fn handle_download_video(
 | `compute_hash` | `fn(&Image) -> HashValue` | Perceptual hashing |
 | `is_unique_slide` | `fn(HashValue, &HashSet<HashValue>) -> bool` | Deduplication |
 | `extract_text` | `async fn(&Image) -> Result<String, Error>` | OCR processing |
+| `verify_slide` | `async fn(&Image, LlmConfig) -> Result<bool, Error>` | LLM verification |
 | `generate_markdown` | `fn(Vec<Slide>) -> String` | Document generation |
 
 ---
@@ -346,6 +349,14 @@ pub struct Slide {
     pub extracted_text: Option<String>,
     pub ocr_confidence: Option<f32>,
     pub language: Option<Language>,
+    pub requires_human_review: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LlmConfig {
+    pub api_key: String,
+    pub base_url: String,
+    pub model: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -677,325 +688,43 @@ mod tests {
 
 ## Implementation
 
-### Project Structure
+## Feature List (FDD)
 
-```
-yt-slide-extractor/
-├── Cargo.toml
-├── Cargo.lock
-├── README.md
-│
-├── src/
-│   ├── main.rs
-│   ├── lib.rs
-│   │
-│   ├── cli/
-│   │   ├── mod.rs
-│   │   ├── commands.rs
-│   │   └── display.rs
-│   │
-│   ├── contexts/
-│   │   ├── session/
-│   │   │   ├── domain/
-│   │   │   │   ├── commands.rs
-│   │   │   │   ├── events.rs
-│   │   │   │   ├── state.rs
-│   │   │   │   ├── handlers.rs
-│   │   │   │   └── policies.rs
-│   │   │   ├── application/
-│   │   │   │   ├── service.rs
-│   │   │   │   └── bus.rs
-│   │   │   └── infrastructure/
-│   │   │       ├── repository.rs
-│   │   │       └── publisher.rs
-│   │   │
-│   │   ├── video/
-│   │   │   ├── domain/
-│   │   │   │   ├── commands.rs
-│   │   │   │   ├── events.rs
-│   │   │   │   ├── state.rs
-│   │   │   │   ├── handlers.rs
-│   │   │   │   └── validators.rs
-│   │   │   └── infrastructure/
-│   │   │       └── downloader.rs
-│   │   │
-│   │   ├── frames/
-│   │   │   ├── domain/
-│   │   │   │   ├── commands.rs
-│   │   │   │   ├── events.rs
-│   │   │   │   ├── state.rs
-│   │   │   │   └── handlers.rs
-│   │   │   └── infrastructure/
-│   │   │       └── ffmpeg.rs
-│   │   │
-│   │   ├── deduplication/
-│   │   │   ├── domain/
-│   │   │   │   ├── commands.rs
-│   │   │   │   ├── events.rs
-│   │   │   │   ├── state.rs
-│   │   │   │   ├── handlers.rs
-│   │   │   │   └── similarity.rs
-│   │   │   └── infrastructure/
-│   │   │       └── hasher.rs
-│   │   │
-│   │   ├── ocr/
-│   │   │   ├── domain/
-│   │   │   │   ├── commands.rs
-│   │   │   │   ├── events.rs
-│   │   │   │   ├── state.rs
-│   │   │   │   └── handlers.rs
-│   │   │   └── infrastructure/
-│   │   │       └── tesseract.rs
-│   │   │
-│   │   └── document/
-│   │       ├── domain/
-│   │       │   ├── commands.rs
-│   │       │   ├── events.rs
-│   │       │   ├── state.rs
-│   │       │   └── handlers.rs
-│   │       └── infrastructure/
-│   │           └── generator.rs
-│   │
-│   └── shared/
-│       ├── domain/
-│       │   ├── id.rs
-│       │   ├── error.rs
-│       │   └── value_objects.rs
-│       └── infrastructure/
-│           └── event_bus.rs
-│
-├── tests/
-│   ├── integration/
-│   └── property/
-│
-└── fixtures/
-    ├── images/
-    └── configs/
-```
+### Video Acquisition Feature Set
+- Validate YouTube URL
+- Fetch video metadata
+- Download video file with retry logic
 
-### Key Dependencies
+### Frame Processing Feature Set
+- Extract frames at regular intervals
+- Compute perceptual hash for each frame
 
-```toml
-[dependencies]
-# CLI
-clap = { version = "4.5", features = ["derive"] }
-indicatif = "0.17"
-console = "0.15"
+### Deduplication Feature Set
+- Compare frames using similarity threshold
+- Identify unique slide candidates
+- [NEW] Verify slide content using Cloud LLM
+- [NEW] Tag non-slide frames for human review
 
-# Async runtime
-tokio = { version = "1.35", features = ["full"] }
+### OCR Feature Set
+- Extract text from slide images
+- Detect slide language
+- Filter results by confidence threshold
 
-# Error handling
-thiserror = "1.0"
-anyhow = "1.0"
+### Document Generation Feature Set
+- Format slide content as Markdown
+- Embed slide images and timestamps
+- [NEW] Ask for deletion of human-review tagged slides
 
-# Serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-
-# Image processing
-image = "0.24"
-imageproc = "0.23"
-image_hasher = "1.2"
-
-# OCR
-tesseract-rs = "0.1"
-
-# Templating
-tera = "1.19"
-
-# Logging
-tracing = "0.1"
-tracing-subscriber = "0.3"
-
-# Utilities
-url = "2.5"
-chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1.6", features = ["v4", "serde"] }
-
-[dev-dependencies]
-# Testing
-proptest = "1.4"
-rstest = "0.18"
-pretty_assertions = "1.4"
-tempfile = "3.8"
-
-# Mocking
-mockall = "0.11"
-```
-
-### Implementation Example
-
-```rust
-// src/shared/domain/id.rs
-use serde::{Deserialize, Serialize};
-use std::fmt;
-use uuid::Uuid;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Id<T>(pub Uuid);
-
-impl<T> Id<T> {
-    pub fn new() -> Self { Self(Uuid::new_v4()) }
-    pub fn from_uuid(uuid: Uuid) -> Self { Self(uuid) }
-    pub fn as_uuid(&self) -> Uuid { self.0 }
-}
-
-impl<T> fmt::Display for Id<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-// src/contexts/video/domain/handlers.rs
-use crate::shared::domain::{Id, ExtractionError};
-use super::{commands::DownloadVideoCommand, events::VideoDownloaded};
-
-pub async fn handle_download_video(
-    command: DownloadVideoCommand,
-    downloader: &dyn VideoDownloader,
-) -> Result<VideoDownloaded, ExtractionError> {
-    let video_id = command.video_id;
-    let (path, duration) = downloader.download(&video_id).await
-        .map_err(|e| ExtractionError::DownloadFailed(3, e.to_string()))?;
-
-    Ok(VideoDownloaded {
-        video_id,
-        path,
-        duration,
-    })
-}
-
-// src/contexts/video/infrastructure/downloader.rs
-use async_trait::async_trait;
-use std::path::PathBuf;
-
-#[async_trait]
-pub trait VideoDownloader: Send + Sync {
-    async fn download(&self, video_id: &Id<YouTubeVideo>) -> Result<(PathBuf, Duration), Box<dyn std::error::Error>>;
-}
-
-pub struct YtDlpDownloader {
-    output_dir: PathBuf,
-}
-
-#[async_trait]
-impl VideoDownloader for YtDlpDownloader {
-    async fn download(&self, video_id: &Id<YouTubeVideo>) -> Result<(PathBuf, Duration), Box<dyn std::error::Error>> {
-        // Implementation using yt-dlp
-        todo!()
-    }
-}
-```
-
-### Development Guidelines
-
-**Functional Programming Principles**
-- Prefer pure functions over methods
-- Use immutable data structures
-- Avoid mutable state in domain logic
-- Return new values instead of mutating
-
-**Type Safety**
-- Use newtypes for domain concepts
-- Leverage Rust's type system for invariants
-- Make invalid states unrepresentable
-
-**Error Handling**
-- Use Result<T, E> everywhere
-- Define domain-specific error types
-- Never panic on business logic errors
-
-**Testing**
-- Test pure functions with unit tests
-- Use property tests for invariants
-- Mock external dependencies
-
-**Documentation**
-- Document public functions with rustdoc
-- Include examples in documentation
-- Explain business rules in comments
-
----
-
-## Key Business Rules (Functional Style)
-
-```rust
-// Business rule: Videos must be publicly accessible YouTube URLs
-pub fn validate_video_url(url: &str) -> Result<Id<YouTubeVideo>, ExtractionError> {
-    if !is_valid_youtube_url(url) {
-        return Err(ExtractionError::InvalidUrl(url.to_string()));
-    }
-
-    Ok(extract_video_id(url))
-}
-
-// Business rule: Slides must exceed similarity threshold
-pub fn is_unique_slide(
-    new_hash: &HashValue,
-    existing_hashes: &HashSet<HashValue>,
-    threshold: f32,
-) -> bool {
-    !existing_hashes.iter().any(|hash| new_hash.similarity(hash) >= threshold)
-}
-
-// Business rule: OCR text below confidence threshold is flagged
-pub fn validate_ocr_confidence(confidence: f32) -> Result<(), ExtractionError> {
-    if confidence < 0.5 {
-        return Err(ExtractionError::LowConfidence(confidence));
-    }
-    Ok(())
-}
-
-// Business rule: All temporary files are cleaned up
-pub fn cleanup_temp_files(paths: Vec<PathBuf>) -> Result<(), ExtractionError> {
-    paths.into_iter()
-        .map(|path| std::fs::remove_file(&path)
-            .map_err(|e| ExtractionError::CleanupFailed(path, e.to_string())))
-        .collect()
-}
-```
-
----
-
-## Success Metrics
-
-**Functional Requirements**
-- Extract unique slides from YouTube videos (95% accuracy)
-- Generate Markdown with embedded images
-- Extract text via OCR (80%+ accuracy on clear text)
-- Handle videos up to 4 hours length
-
-**Quality Metrics**
-- Test coverage > 80%
-- Zero unsafe code in domain layer
-- All property tests passing
-
-**Performance Metrics**
-- < 5 minutes processing for 30-minute video
-- Memory usage < 500MB during processing
-- Zero-copy operations where possible
-
----
-
-## Implementation Phases
-
-| Phase | Duration | Deliverables |
-|-------|----------|--------------|
-| 1: Core Types | Week 1 | ID types, error types, basic event/command structures |
-| 2: Video Context | Week 2-3 | URL validation, video download, video events |
-| 3: Frame Context | Week 4 | Frame extraction, hashing, frame events |
-| 4: Deduplication Context | Week 5 | Similarity calculation, slide identification |
-| 5: OCR Context | Week 6-7 | Text extraction, language detection |
-| 6: Document Context | Week 8 | Markdown generation, templating |
-| 7: Session Context | Week 9 | Orchestration, event bus, state projections |
-| 8: CLI & Polish | Week 10-11 | CLI interface, progress display, error messages |
-| 9: Testing | Week 12 | Unit, integration, property tests |
-| 10: Documentation | Week 13-14 | User docs, API docs, architecture docs |
+### Session & CLI Feature Set
+- Orchestrate end-to-end pipeline
+- Display real-time progress
+- Handle session recovery
+- [NEW] Prompt for conditional cleanup of tagged frames
 
 ---
 
 ## References
+
 
 Inspired by:
 - Functional DDD patterns from PensionBee ddd-workshop

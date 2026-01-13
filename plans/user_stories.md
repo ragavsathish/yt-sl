@@ -32,6 +32,9 @@
 - CLI accepts optional `--output` parameter for output directory (default: current directory)
 - CLI accepts optional `--languages` parameter for OCR languages (default: English)
 - CLI accepts optional `--timestamps` flag to include timestamps in output
+- CLI accepts optional `--llm-api-key` parameter for Cloud LLM verification
+- CLI accepts optional `--llm-base-url` parameter for OpenAI-compatible API base URL
+- CLI accepts optional `--llm-model` parameter for the LLM model name
 - CLI displays help message with all available options when `--help` is provided
 - CLI displays version information when `--version` is provided
 - Invalid arguments result in a clear error message with usage instructions
@@ -360,6 +363,36 @@
 - Error message suggests lowering similarity threshold
 - Temporary files are cleaned up before reporting error
 - Session state is set to Failed with reason "NoUniqueSlidesFound"
+
+---
+
+### US-DEDUP-05: Verify Slides with Cloud LLM
+
+**As a** Researcher, Student, Content Creator, or Educator
+**I want** to use a Cloud LLM to verify if identified unique frames actually contain slides
+**So that** non-slide frames (like speaker-only views) are tagged for review
+
+**Acceptance Criteria:**
+- Each identified unique slide is sent to a Cloud LLM (OpenAI compatible API) for verification
+- LLM is prompted to identify if the frame contains a presentation slide or just people/faces
+- Slides identified as "not a slide" are tagged with `requires_human_review = true`
+- LLM verification is only performed if `llm` configuration is provided
+- LLM verification failures are logged but do not stop the process
+
+---
+
+### US-DEDUP-06: Confirm Deletion of Non-Slide Frames
+
+**As a** Researcher, Student, Content Creator, or Educator
+**I want** to be asked whether to delete frames tagged for human review at the end of the process
+**So that** I can easily clean up the output directory
+
+**Acceptance Criteria:**
+- After generation completes, if any slides were tagged for human review, the CLI prompts the user
+- The prompt asks: "Some slides were tagged as potentially not containing presentation content. Would you like to delete them? (y/N)"
+- If user confirms (y/Y), tagged slide images are deleted from the output directory
+- If user denies or provides no input, tagged slides are kept for manual review
+- Summary report indicates how many slides were deleted or kept for review
 
 ---
 
