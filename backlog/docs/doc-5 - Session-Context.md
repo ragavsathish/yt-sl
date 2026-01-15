@@ -1,3 +1,9 @@
+---
+id: doc-5
+title: Session-Context
+type: specification
+created_date: '2026-01-15 22:15'
+---
 # Session Context
 
 > Orchestrates the entire slide extraction pipeline, manages session state, and coordinates communication between all bounded contexts.

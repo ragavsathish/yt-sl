@@ -1,3 +1,9 @@
+---
+id: doc-11
+title: Functional-DDD-YouTube-Video-Slide-Extractor
+type: specification
+created_date: '2026-01-15 22:15'
+---
 # Functional DDD: YouTube Video Slide Extractor
 
 > Functional Domain-Driven Design specification for a CLI tool that extracts unique slides from YouTube videos with OCR and Markdown output.
@@ -205,7 +211,7 @@ graph TB
 Each bounded context follows this structure:
 
 ```
-contexts/
+docs/
 └── session/
     ├── domain/
     │   ├── commands.rs      // Command types
@@ -228,13 +234,13 @@ contexts/
 | Context | Document | Responsibility |
 |---------|----------|----------------|
 | **Shared** | [SHARED_FDD.md](SHARED_FDD.md) | Events, commands, errors, IDs |
-| **Session** | [contexts/SESSION_FDD.md](contexts/SESSION_FDD.md) | Orchestration, state management |
-| **Video** | [contexts/VIDEO_FDD.md](contexts/VIDEO_FDD.md) | YouTube interaction, download |
-| **Transcription** | [contexts/TRANSCRIPTION_FDD.md](contexts/TRANSCRIPTION_FDD.md) | Audio extraction, speech-to-text |
-| **Frame** | [contexts/FRAME_FDD.md](contexts/FRAME_FDD.md) | Frame extraction, hashing |
-| **Deduplication** | [contexts/DEDUP_FDD.md](contexts/DEDUP_FDD.md) | Slide identification, verification |
-| **OCR** | [contexts/OCR_FDD.md](contexts/OCR_FDD.md) | Text recognition |
-| **Document** | [contexts/DOCUMENT_FDD.md](contexts/DOCUMENT_FDD.md) | Markdown generation |
+| **Session** | [SESSION_FDD.md](SESSION_FDD.md) | Orchestration, state management |
+| **Video** | [VIDEO_FDD.md](VIDEO_FDD.md) | YouTube interaction, download |
+| **Transcription** | [TRANSCRIPTION_FDD.md](TRANSCRIPTION_FDD.md) | Audio extraction, speech-to-text |
+| **Frame** | [FRAME_FDD.md](FRAME_FDD.md) | Frame extraction, hashing |
+| **Deduplication** | [DEDUP_FDD.md](DEDUP_FDD.md) | Slide identification, verification |
+| **OCR** | [OCR_FDD.md](OCR_FDD.md) | Text recognition |
+| **Document** | [DOCUMENT_FDD.md](DOCUMENT_FDD.md) | Markdown generation |
 
 ### Context Dependencies
 

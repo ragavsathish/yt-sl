@@ -1,3 +1,10 @@
+---
+id: doc-3
+title: Document-Context
+type: specification
+created_date: '2026-01-15 22:15'
+updated_date: '2026-01-15 22:25'
+---
 # Document Context
 
 > Generates Markdown documents from extracted slides and transcripts.

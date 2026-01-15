@@ -1,3 +1,9 @@
+---
+id: doc-10
+title: OCR-Context
+type: specification
+created_date: '2026-01-15 22:15'
+---
 # OCR Context
 
 > Extracts text from slide images using Tesseract OCR.

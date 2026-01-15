@@ -1,3 +1,9 @@
+---
+id: doc-12
+title: Rust-YouTube-Slide-Extractor-Technical-Research-Document
+type: research
+created_date: '2026-01-15 22:15'
+---
 # Rust YouTube Slide Extractor - Technical Research Document
 
 ## Overview

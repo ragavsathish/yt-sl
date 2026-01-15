@@ -1,3 +1,9 @@
+---
+id: doc-9
+title: Deduplication-Context
+type: specification
+created_date: '2026-01-15 22:15'
+---
 # Deduplication Context
 
 > Identifies unique slides from extracted frames using perceptual hashing and optional LLM verification.

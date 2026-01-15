@@ -1,3 +1,9 @@
+---
+id: doc-8
+title: Frame-Context
+type: specification
+created_date: '2026-01-15 22:15'
+---
 # Frame Context
 
 > Handles frame extraction from videos and perceptual hash calculation for deduplication.

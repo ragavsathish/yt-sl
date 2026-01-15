@@ -1,3 +1,9 @@
+---
+id: doc-7
+title: Transcription-Context
+type: specification
+created_date: '2026-01-15 22:15'
+---
 # Transcription Context
 
 > Handles audio extraction from videos and speech-to-text transcription using Whisper.

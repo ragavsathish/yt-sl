@@ -1,3 +1,9 @@
+---
+id: doc-4
+title: Shared-Domain-Concepts
+type: specification
+created_date: '2026-01-15 22:15'
+---
 # Shared Domain Concepts
 
 > Domain concepts shared across all bounded contexts in YouTube Video Slide Extractor.

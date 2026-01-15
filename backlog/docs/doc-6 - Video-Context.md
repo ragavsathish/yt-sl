@@ -1,3 +1,9 @@
+---
+id: doc-6
+title: Video-Context
+type: specification
+created_date: '2026-01-15 22:15'
+---
 # Video Context
 
 > Handles YouTube video URL validation, metadata fetching, and video file downloading with retry logic.
