@@ -4,7 +4,7 @@ title: US-DEDUP-06 Confirm Deletion of Non-Slide Frames
 status: Completed
 assignee: [opencode]
 created_date: '2026-01-15 22:02'
-updated_date: '2026-01-24 19:45'
+updated_date: '2026-01-24 19:54'
 labels: []
 dependencies: [TASK-26]
 ordinal: 3000
@@ -21,6 +21,7 @@ ordinal: 3000
 - [x] #3 If user confirms (y/Y), tagged slide images are deleted from the output directory
 - [x] #4 If user denies or provides no input, tagged slides are kept for manual review
 - [x] #5 Summary report indicates how many slides were deleted or kept for review
+- [x] #6 Generate dual reports: `report.md` (full with warnings) and `report_cleaned.md` (verified slides only)
 
 ---
 <!-- AC:END -->
