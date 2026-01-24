@@ -1,3 +1,4 @@
+use std::io::{self, Write};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{error, info, Level};
@@ -65,6 +66,38 @@ async fn main() {
         Ok(event) => {
             info!("Extraction successful!");
             info!("Report generated at: {}", event.file_path);
+
+            if event.review_count > 0 {
+                info!(
+                    "Note: {} slides were tagged for manual review (likely speaker views).",
+                    event.review_count
+                );
+                println!();
+                print!(
+                    "Would you like to delete these {} tagged slide images? (y/N): ",
+                    event.review_count
+                );
+                io::stdout().flush().unwrap();
+
+                let mut input = String::new();
+                if io::stdin().read_line(&mut input).is_ok() {
+                    let response = input.trim().to_lowercase();
+                    if response == "y" || response == "yes" {
+                        let mut deleted_count = 0;
+                        for path in event.review_slides {
+                            if std::fs::remove_file(&path).is_ok() {
+                                deleted_count += 1;
+                            }
+                        }
+                        info!(
+                            "Successfully deleted {} non-presentation slides.",
+                            deleted_count
+                        );
+                    } else {
+                        info!("Kept {} slides for manual review.", event.review_count);
+                    }
+                }
+            }
         }
         Err(e) => {
             error!("Extraction failed: {}", e.user_message());

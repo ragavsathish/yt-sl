@@ -7,4 +7,6 @@ pub struct DocumentGenerated {
     pub video_id: Id<YouTubeVideo>,
     pub file_path: String,
     pub slide_count: u32,
+    pub review_count: u32,
+    pub review_slides: Vec<String>,
 }

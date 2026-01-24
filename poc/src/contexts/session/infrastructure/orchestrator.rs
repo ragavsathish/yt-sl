@@ -349,10 +349,19 @@ impl SessionOrchestrator {
             p.lock().await.finish_all();
         }
 
+        let review_slides: Vec<String> = state
+            .slides
+            .iter()
+            .filter(|s| s.requires_human_review)
+            .map(|s| s.image_path.clone())
+            .collect();
+
         Ok(DocumentGenerated {
             video_id: Id::new(),
             file_path: state.report_path.unwrap(),
-            slide_count: 0, // Could be accurately tracked if needed
+            slide_count: state.slides.len() as u32,
+            review_count: review_slides.len() as u32,
+            review_slides,
         })
     }
 
