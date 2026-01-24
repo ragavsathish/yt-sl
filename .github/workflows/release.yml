@@ -45,6 +45,7 @@ jobs:
           targets: ${{ matrix.platform.target }}
 
       - name: Build
+        shell: bash
         run: |
           if [ "${{ matrix.platform.target }}" = "aarch64-unknown-linux-gnu" ]; then
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
