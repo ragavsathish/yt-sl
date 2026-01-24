@@ -1,10 +1,10 @@
 ---
 id: TASK-45
 title: US-DOC-05 Export to PDF via Typst and Pandoc
-status: To Do
-assignee: []
+status: Completed
+assignee: [Antigravity]
 created_date: '2026-01-24 21:05'
-labels: []
+labels: [document, pdf, pandoc, typst]
 dependencies: []
 priority: medium
 ---
@@ -19,9 +19,9 @@ priority: medium
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Integrate Pandoc for Markdown to PDF conversion
-- [ ] #2 Use Typst as the PDF engine/template
-- [ ] #3 Support custom Typst templates for professional styling
-- [ ] #4 Add a CLI flag --pdf to trigger PDF generation
-- [ ] #5 Ensure images are correctly embedded in the PDF
+- [x] #1 Integrate Pandoc for Markdown to PDF conversion
+- [x] #2 Use Typst as the PDF engine/template
+- [x] #3 Support custom Typst templates for professional styling
+- [x] #4 Add a CLI flag --pdf to trigger PDF generation
+- [x] #5 Ensure images are correctly embedded in the PDF
 <!-- AC:END -->

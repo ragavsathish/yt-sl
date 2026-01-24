@@ -46,6 +46,8 @@ async fn main() {
         confidence_threshold: 0.6, // Default
         languages: args.languages,
         llm_config: None,
+        generate_pdf: args.generate_pdf,
+        pdf_template: args.pdf_template,
     };
 
     if args.llm_verify {
@@ -65,12 +67,15 @@ async fn main() {
     match SessionOrchestrator::run_session(command, Some(progress)).await {
         Ok(event) => {
             info!("Extraction successful!");
-            info!("Report generated at: {}", event.file_path);
+            info!("Markdown report generated at: {}", event.file_path);
+            if let Some(pdf_path) = event.pdf_path {
+                info!("PDF report generated at: {}", pdf_path);
+            }
             if let Some(cleaned_path) = event.cleaned_file_path {
-                info!(
-                    "Cleaned report (no non-slides) generated at: {}",
-                    cleaned_path
-                );
+                info!("Cleaned Markdown report generated at: {}", cleaned_path);
+            }
+            if let Some(cleaned_pdf_path) = event.cleaned_pdf_path {
+                info!("Cleaned PDF report generated at: {}", cleaned_pdf_path);
             }
 
             if event.review_count > 0 {

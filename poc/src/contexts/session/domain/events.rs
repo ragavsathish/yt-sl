@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 pub struct DocumentGenerated {
     pub video_id: Id<YouTubeVideo>,
     pub file_path: String,
+    pub pdf_path: Option<String>,
     pub cleaned_file_path: Option<String>,
+    pub cleaned_pdf_path: Option<String>,
     pub slide_count: u32,
     pub review_count: u32,
     pub review_slides: Vec<String>,

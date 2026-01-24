@@ -22,6 +22,10 @@ pub enum Dependency {
     FFmpeg,
     /// Tesseract OCR - Text recognition
     Tesseract,
+    /// Pandoc - Document converter
+    Pandoc,
+    /// Typst - Modern document layout engine
+    Typst,
 }
 
 impl Dependency {
@@ -30,6 +34,8 @@ impl Dependency {
             Dependency::YtDlp => "yt-dlp",
             Dependency::FFmpeg => "ffmpeg",
             Dependency::Tesseract => "tesseract",
+            Dependency::Pandoc => "pandoc",
+            Dependency::Typst => "typst",
         }
     }
 
@@ -38,6 +44,8 @@ impl Dependency {
             Dependency::YtDlp => "yt-dlp",
             Dependency::FFmpeg => "FFmpeg",
             Dependency::Tesseract => "Tesseract OCR",
+            Dependency::Pandoc => "Pandoc",
+            Dependency::Typst => "Typst",
         }
     }
 
@@ -46,6 +54,8 @@ impl Dependency {
             Dependency::YtDlp => Some("2023.01.01"),
             Dependency::FFmpeg => Some("4.0"),
             Dependency::Tesseract => Some("4.0"),
+            Dependency::Pandoc => Some("3.0"),
+            Dependency::Typst => Some("0.10"),
         }
     }
 
@@ -66,6 +76,18 @@ impl Dependency {
                  - macOS: brew install tesseract\n\
                  - Ubuntu/Debian: sudo apt install tesseract-ocr\n\
                  - Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki"
+            }
+            Dependency::Pandoc => {
+                "Install Pandoc using your package manager:\n\
+                 - macOS: brew install pandoc\n\
+                 - Ubuntu/Debian: sudo apt install pandoc\n\
+                 - Windows: Download from https://pandoc.org/installing.html"
+            }
+            Dependency::Typst => {
+                "Install Typst using your package manager:\n\
+                 - macOS: brew install typst\n\
+                 - Rust: cargo install typst-cli\n\
+                 - Others: Download from https://github.com/typst/typst/releases"
             }
         }
     }
@@ -89,6 +111,16 @@ impl Dependency {
                 "Try running 'tesseract --version' to verify installation",
                 "Install required language data (e.g., tesseract-ocr-eng)",
                 "Check TESSDATA_PREFIX environment variable",
+            ],
+            Dependency::Pandoc => vec![
+                "Ensure Pandoc is in your system PATH",
+                "Try running 'pandoc --version' to verify installation",
+                "Check if Pandoc version is 3.0 or higher",
+            ],
+            Dependency::Typst => vec![
+                "Ensure Typst is in your system PATH",
+                "Try running 'typst --version' to verify installation",
+                "Check if Typst version is 0.10 or higher",
             ],
         }
     }
@@ -197,6 +229,8 @@ impl DependencyChecker {
             self.check(&Dependency::YtDlp),
             self.check(&Dependency::FFmpeg),
             self.check(&Dependency::Tesseract),
+            self.check(&Dependency::Pandoc),
+            self.check(&Dependency::Typst),
         ]
     }
 
@@ -300,6 +334,17 @@ impl DependencyChecker {
                     Err("No version output found".to_string())
                 }
             }
+            Dependency::Pandoc | Dependency::Typst => {
+                if let Some(line) = stdout.lines().next() {
+                    if let Some(version) = line.split_whitespace().nth(1) {
+                        Ok(version.to_string())
+                    } else {
+                        Ok(line.to_string())
+                    }
+                } else {
+                    Err("No version output found".to_string())
+                }
+            }
         }
     }
 
@@ -374,6 +419,8 @@ mod tests {
         assert_eq!(Dependency::YtDlp.command_name(), "yt-dlp");
         assert_eq!(Dependency::FFmpeg.command_name(), "ffmpeg");
         assert_eq!(Dependency::Tesseract.command_name(), "tesseract");
+        assert_eq!(Dependency::Pandoc.command_name(), "pandoc");
+        assert_eq!(Dependency::Typst.command_name(), "typst");
     }
 
     #[test]
@@ -381,6 +428,8 @@ mod tests {
         assert_eq!(Dependency::YtDlp.display_name(), "yt-dlp");
         assert_eq!(Dependency::FFmpeg.display_name(), "FFmpeg");
         assert_eq!(Dependency::Tesseract.display_name(), "Tesseract OCR");
+        assert_eq!(Dependency::Pandoc.display_name(), "Pandoc");
+        assert_eq!(Dependency::Typst.display_name(), "Typst");
     }
 
     #[test]
@@ -388,6 +437,8 @@ mod tests {
         assert!(Dependency::YtDlp.minimum_version().is_some());
         assert!(Dependency::FFmpeg.minimum_version().is_some());
         assert!(Dependency::Tesseract.minimum_version().is_some());
+        assert!(Dependency::Pandoc.minimum_version().is_some());
+        assert!(Dependency::Typst.minimum_version().is_some());
     }
 
     #[test]
@@ -395,6 +446,8 @@ mod tests {
         assert!(!Dependency::YtDlp.installation_instructions().is_empty());
         assert!(!Dependency::FFmpeg.installation_instructions().is_empty());
         assert!(!Dependency::Tesseract.installation_instructions().is_empty());
+        assert!(!Dependency::Pandoc.installation_instructions().is_empty());
+        assert!(!Dependency::Typst.installation_instructions().is_empty());
     }
 
     #[test]
@@ -402,6 +455,8 @@ mod tests {
         assert!(!Dependency::YtDlp.troubleshooting_steps().is_empty());
         assert!(!Dependency::FFmpeg.troubleshooting_steps().is_empty());
         assert!(!Dependency::Tesseract.troubleshooting_steps().is_empty());
+        assert!(!Dependency::Pandoc.troubleshooting_steps().is_empty());
+        assert!(!Dependency::Typst.troubleshooting_steps().is_empty());
     }
 
     #[test]
@@ -409,6 +464,8 @@ mod tests {
         assert_eq!(Dependency::YtDlp.to_string(), "yt-dlp");
         assert_eq!(Dependency::FFmpeg.to_string(), "FFmpeg");
         assert_eq!(Dependency::Tesseract.to_string(), "Tesseract OCR");
+        assert_eq!(Dependency::Pandoc.to_string(), "Pandoc");
+        assert_eq!(Dependency::Typst.to_string(), "Typst");
     }
 
     #[test]

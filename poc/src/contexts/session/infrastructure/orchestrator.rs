@@ -326,10 +326,13 @@ impl SessionOrchestrator {
                 slides: slides_data.clone(),
                 output_path: doc_path.clone(),
                 include_timeline_diagram: true,
+                generate_pdf: command.generate_pdf,
+                pdf_template: command.pdf_template.clone(),
             };
 
             let doc_event = handle_generate_document(doc_cmd)?;
             state.report_path = Some(doc_event.file_path);
+            let pdf_path = doc_event.pdf_path;
 
             // Report 2: Cleaned report removing non-slides
             let cleaned_slides_data: Vec<SlideData> = slides_data
@@ -337,56 +340,66 @@ impl SessionOrchestrator {
                 .filter(|s| !s.requires_human_review)
                 .collect();
 
+            let mut cleaned_pdf_path = None;
             if !cleaned_slides_data.is_empty() {
                 let cleaned_doc_cmd = GenerateDocumentCommand {
                     video_id: Id::new(),
                     title: format!("{} (Cleaned)", metadata.title),
-                    url: command.youtube_url,
+                    url: command.youtube_url.clone(),
                     duration: metadata.duration,
                     slides: cleaned_slides_data,
                     output_path: cleaned_doc_path.clone(),
                     include_timeline_diagram: true,
+                    generate_pdf: command.generate_pdf,
+                    pdf_template: command.pdf_template.clone(),
                 };
 
                 let cleaned_doc_event = handle_generate_document(cleaned_doc_cmd)?;
                 state.cleaned_report_path = Some(cleaned_doc_event.file_path);
+                cleaned_pdf_path = cleaned_doc_event.pdf_path;
             }
 
             state.status = SessionStatus::Completed;
             Self::save_state(&state_path, &state)?;
+
+            // 6. Cleanup
+            if let Some(p) = &progress {
+                p.lock().await.set_stage("Cleaning up...");
+            }
+            info!("Step 6: Cleaning up temporary resources...");
+            if let Some(video_path) = &state.video_path {
+                let _ = fs::remove_file(video_path);
+            }
+            if let Some(frames_dir) = &state.frames_dir {
+                let _ = fs::remove_dir_all(frames_dir);
+            }
+
+            if let Some(p) = &progress {
+                p.lock().await.finish_all();
+            }
+
+            let review_slides: Vec<String> = state
+                .slides
+                .iter()
+                .filter(|s| s.requires_human_review)
+                .map(|s| s.image_path.clone())
+                .collect();
+
+            return Ok(DocumentGenerated {
+                video_id: Id::new(),
+                file_path: state.report_path.unwrap(),
+                pdf_path,
+                cleaned_file_path: state.cleaned_report_path,
+                cleaned_pdf_path,
+                slide_count: state.slides.len() as u32,
+                review_count: review_slides.len() as u32,
+                review_slides,
+            });
         }
 
-        // 6. Cleanup
-        if let Some(p) = &progress {
-            p.lock().await.set_stage("Cleaning up...");
-        }
-        info!("Step 6: Cleaning up temporary resources...");
-        if let Some(video_path) = &state.video_path {
-            let _ = fs::remove_file(video_path);
-        }
-        if let Some(frames_dir) = &state.frames_dir {
-            let _ = fs::remove_dir_all(frames_dir);
-        }
-
-        if let Some(p) = &progress {
-            p.lock().await.finish_all();
-        }
-
-        let review_slides: Vec<String> = state
-            .slides
-            .iter()
-            .filter(|s| s.requires_human_review)
-            .map(|s| s.image_path.clone())
-            .collect();
-
-        Ok(DocumentGenerated {
-            video_id: Id::new(),
-            file_path: state.report_path.unwrap(),
-            cleaned_file_path: state.cleaned_report_path,
-            slide_count: state.slides.len() as u32,
-            review_count: review_slides.len() as u32,
-            review_slides,
-        })
+        Err(crate::shared::domain::ExtractionError::InternalError(
+            "Session failed to reach completion state".to_string(),
+        ))
     }
 
     fn save_state(path: &str, state: &SessionState) -> DomainResult<()> {

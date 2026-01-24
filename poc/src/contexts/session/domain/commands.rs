@@ -12,6 +12,8 @@ pub struct StartExtractionSessionCommand {
     pub confidence_threshold: f64,
     pub languages: Vec<String>,
     pub llm_config: Option<crate::shared::domain::config::LlmConfig>,
+    pub generate_pdf: bool,
+    pub pdf_template: Option<String>,
 }
 
 impl Default for StartExtractionSessionCommand {
@@ -25,6 +27,8 @@ impl Default for StartExtractionSessionCommand {
             confidence_threshold: 0.6,
             languages: vec!["eng".to_string()],
             llm_config: None,
+            generate_pdf: false,
+            pdf_template: None,
         }
     }
 }

@@ -1,9 +1,11 @@
 use crate::contexts::document::domain::commands::GenerateDocumentCommand;
 use crate::contexts::document::domain::events::DocumentGenerated;
+use crate::contexts::document::infrastructure::PdfGenerator;
 use crate::shared::domain::{DomainResult, ExtractionError};
 use std::fs;
 use std::path::Path;
 use tera::{Context, Tera};
+use tracing::info;
 
 /// Handles the generate document command using Tera templates.
 pub fn handle_generate_document(
@@ -94,9 +96,28 @@ graph LR
     fs::write(output_path, rendered)
         .map_err(|e| ExtractionError::FileSystemError(e.to_string()))?;
 
+    let mut pdf_path_result = None;
+
+    // Generate PDF if requested
+    if command.generate_pdf {
+        let pdf_path = output_path.with_extension("pdf");
+        let pdf_path_str = pdf_path.to_str().ok_or_else(|| {
+            ExtractionError::InternalError("Failed to convert PDF path to string".to_string())
+        })?;
+
+        info!("PDF generation requested. Output path: {}", pdf_path_str);
+        PdfGenerator::generate_pdf(
+            &command.output_path,
+            pdf_path_str,
+            command.pdf_template.as_deref(),
+        )?;
+        pdf_path_result = Some(pdf_path_str.to_string());
+    }
+
     Ok(DocumentGenerated {
         video_id: command.video_id,
         file_path: command.output_path.clone(),
+        pdf_path: pdf_path_result,
         slide_count: command.slides.len() as u32,
     })
 }
@@ -136,11 +157,14 @@ mod tests {
             ],
             output_path: output_path.to_str().unwrap().to_string(),
             include_timeline_diagram: true,
+            generate_pdf: false,
+            pdf_template: None,
         };
 
         let result = handle_generate_document(command).unwrap();
         assert_eq!(result.slide_count, 2);
         assert!(output_path.exists());
+        assert!(result.pdf_path.is_none());
 
         let content = fs::read_to_string(output_path).unwrap();
         assert!(content.contains("# Test Video"));

@@ -63,8 +63,8 @@ pub struct CliArgs {
         short = 'o',
         long = "output",
         value_name = "DIR",
-        default_value = ".",
-        help = "Output directory for generated files (default: current directory)"
+        default_value = "./output",
+        help = "Output directory for generated files (default: ./output)"
     )]
     pub output_dir: PathBuf,
 
@@ -121,6 +121,17 @@ pub struct CliArgs {
     /// Enable LLM verification
     #[arg(long = "llm-verify", help = "Enable LLM slide verification")]
     pub llm_verify: bool,
+
+    /// Generate PDF report using Pandoc and Typst
+    #[arg(short = 'p', long = "pdf", help = "Generate PDF report")]
+    pub generate_pdf: bool,
+
+    /// Custom Typst template for PDF generation
+    #[arg(
+        long = "pdf-template",
+        help = "Custom Typst template for PDF generation"
+    )]
+    pub pdf_template: Option<String>,
 }
 
 impl CliArgs {
@@ -255,7 +266,7 @@ impl Default for CliArgs {
             youtube_url: String::new(),
             interval: 5.0,
             threshold: 0.85,
-            output_dir: PathBuf::from("."),
+            output_dir: PathBuf::from("./output"),
             languages: vec!["eng".to_string()],
             timestamps: false,
             memory_threshold_mb: 500,
@@ -263,6 +274,8 @@ impl Default for CliArgs {
             llm_api_base: "http://localhost:1234/v1".to_string(),
             llm_model: "qwen/qwen3-vl-8b".to_string(),
             llm_verify: false,
+            generate_pdf: false,
+            pdf_template: None,
         }
     }
 }
@@ -284,6 +297,7 @@ mod tests {
         assert_eq!(args.threshold, 0.85);
         assert_eq!(args.languages, vec!["eng"]);
         assert!(!args.timestamps);
+        assert_eq!(args.output_dir, PathBuf::from("./output"));
         assert_eq!(args.memory_threshold_mb, 500);
     }
 
@@ -439,6 +453,8 @@ mod tests {
             llm_api_base: "http://localhost:1234/v1".to_string(),
             llm_model: "qwen/qwen3-vl-8b".to_string(),
             llm_verify: false,
+            generate_pdf: false,
+            pdf_template: None,
         };
 
         let config = args.to_config().unwrap();

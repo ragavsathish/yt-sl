@@ -12,7 +12,7 @@ pub struct SlideData {
     pub requires_human_review: bool,
 }
 
-/// Command to generate the final Markdown document.
+/// Command to generate the final Markdown document and optionally a PDF.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenerateDocumentCommand {
     pub video_id: Id<YouTubeVideo>,
@@ -22,6 +22,8 @@ pub struct GenerateDocumentCommand {
     pub slides: Vec<SlideData>,
     pub output_path: String,
     pub include_timeline_diagram: bool,
+    pub generate_pdf: bool,
+    pub pdf_template: Option<String>,
 }
 
 impl Default for GenerateDocumentCommand {
@@ -34,6 +36,8 @@ impl Default for GenerateDocumentCommand {
             slides: Vec::new(),
             output_path: "output.md".to_string(),
             include_timeline_diagram: true,
+            generate_pdf: false,
+            pdf_template: None,
         }
     }
 }
