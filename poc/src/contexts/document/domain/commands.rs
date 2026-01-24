@@ -8,6 +8,8 @@ pub struct SlideData {
     pub timestamp: f64,
     pub image_path: String,
     pub text: String,
+    #[serde(default)]
+    pub requires_human_review: bool,
 }
 
 /// Command to generate the final Markdown document.

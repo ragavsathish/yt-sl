@@ -63,7 +63,7 @@ impl OutputDirectoryValidator {
 
     fn validate_parent_directory(&self) -> DomainResult<()> {
         if let Some(parent) = self.output_dir.parent() {
-            if !parent.exists() {
+            if !parent.as_os_str().is_empty() && !parent.exists() {
                 return Err(ExtractionError::ParentDirectoryNotFound(
                     parent.display().to_string(),
                 ));

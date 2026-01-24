@@ -4,10 +4,10 @@ title: US-DEDUP-06 Confirm Deletion of Non-Slide Frames
 status: To Do
 assignee: []
 created_date: '2026-01-15 22:02'
-updated_date: '2026-01-15 20:22'
+updated_date: '2026-01-24 19:23'
 labels: []
 dependencies: []
-ordinal: 1000
+ordinal: 3000
 ---
 
 **As a** Researcher, Student, Content Creator, or Educator

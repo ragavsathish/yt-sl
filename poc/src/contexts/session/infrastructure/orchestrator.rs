@@ -3,7 +3,7 @@ use crate::contexts::dedup::domain::commands::{
     FrameDedupMetadata, IdentifyUniqueSlidesCommand, SelectionStrategy,
 };
 use crate::contexts::dedup::domain::handlers::handle_identify_unique_slides;
-use crate::contexts::dedup::infrastructure::SlideSelector;
+use crate::contexts::dedup::infrastructure::{LlmVerifier, SlideSelector};
 use crate::contexts::document::domain::commands::{GenerateDocumentCommand, SlideData};
 use crate::contexts::document::domain::handlers::handle_generate_document;
 use crate::contexts::frame::domain::commands::{
@@ -211,6 +211,7 @@ impl SessionOrchestrator {
                     slide_index: event.slide_index,
                     timestamp: frame.timestamp,
                     image_path: event.slide_path.clone(),
+                    requires_human_review: false,
                 });
             }
             slides_state.sort_by_key(|s| s.slide_index);
@@ -218,6 +219,62 @@ impl SessionOrchestrator {
 
             state.slides_dir = Some(slides_dir.clone());
             state.status = SessionStatus::UniqueSlidesIdentified;
+            Self::save_state(&state_path, &state)?;
+        }
+
+        // 4b. Optional LLM Verification
+        if state.status == SessionStatus::UniqueSlidesIdentified && command.llm_config.is_some() {
+            if let Some(p) = &progress {
+                p.lock().await.set_stage("Verifying slides with LLM...");
+            }
+            info!("Step 4b: Verifying identified slides with Cloud LLM...");
+
+            let llm_config = command.llm_config.as_ref().unwrap();
+            let mut join_set = tokio::task::JoinSet::new();
+
+            if let Some(p) = &progress {
+                p.lock().await.start_progress(state.slides.len() as u64);
+            }
+
+            for slide in &state.slides {
+                let image_path = slide.image_path.clone();
+                let config = llm_config.clone();
+                let slide_index = slide.slide_index;
+                join_set.spawn(async move {
+                    let result = LlmVerifier::verify_slide(&image_path, &config).await;
+                    (slide_index, result)
+                });
+            }
+
+            let mut verified_count = 0;
+            while let Some(res) = join_set.join_next().await {
+                match res {
+                    Ok((index, Ok(is_slide))) => {
+                        if let Some(slide) =
+                            state.slides.iter_mut().find(|s| s.slide_index == index)
+                        {
+                            if !is_slide {
+                                info!("Slide {} identified as NOT a slide by LLM.", index);
+                                slide.requires_human_review = true;
+                            }
+                        }
+                    }
+                    Ok((index, Err(e))) => {
+                        warn!(
+                            "LLM verification failed for slide {}: {}. Skipping.",
+                            index, e
+                        );
+                    }
+                    Err(e) => {
+                        warn!("LLM verification task panicked: {}.", e);
+                    }
+                }
+                verified_count += 1;
+                if let Some(p) = &progress {
+                    p.lock().await.update_progress(verified_count);
+                }
+            }
+
             Self::save_state(&state_path, &state)?;
         }
 
@@ -249,6 +306,7 @@ impl SessionOrchestrator {
                     timestamp: slide_state.timestamp,
                     image_path: slide_state.image_path.clone(),
                     text: ocr_result.text,
+                    requires_human_review: slide_state.requires_human_review,
                 });
                 if let Some(p) = &progress {
                     p.lock().await.update_progress((i + 1) as u64);

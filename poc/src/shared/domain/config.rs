@@ -38,6 +38,28 @@ pub struct ExtractionConfig {
     /// Memory threshold in MB (default: 500)
     #[serde(default = "default_memory_threshold")]
     pub memory_threshold_mb: u64,
+
+    /// Optional Cloud LLM configuration for slide verification
+    #[serde(default)]
+    pub llm: Option<LlmConfig>,
+}
+
+/// Configuration for Cloud LLM verification.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LlmConfig {
+    /// API key for the LLM service
+    pub api_key: Option<String>,
+    /// Base URL for the OpenAI-compatible API (e.g., http://localhost:1234/v1)
+    pub api_base: String,
+    /// Model name to use (e.g., qwen/qwen3-vl-8b)
+    pub model: String,
+    /// Custom prompt for verification
+    #[serde(default = "default_llm_prompt")]
+    pub prompt: String,
+}
+
+fn default_llm_prompt() -> String {
+    "Analyze this image from a video. Is it a presentation slide (containing text, diagrams, or bullet points) or a view of a person/speaker? Respond with exactly one word: 'SLIDE' or 'NOT_SLIDE'.".to_string()
 }
 
 impl ExtractionConfig {
@@ -51,6 +73,7 @@ impl ExtractionConfig {
             languages: default_languages(),
             timestamps: default_timestamps(),
             memory_threshold_mb: default_memory_threshold(),
+            llm: None,
         }
     }
 
@@ -190,6 +213,7 @@ impl ConfigBuilder {
             memory_threshold_mb: self
                 .memory_threshold_mb
                 .unwrap_or_else(default_memory_threshold),
+            llm: None,
         };
 
         config.validated()
@@ -280,6 +304,7 @@ mod tests {
         let config = ExtractionConfig::new("https://youtube.com/watch?v=test".to_string());
         let config = ExtractionConfig {
             interval: 0.05,
+            llm: None,
             ..config
         };
         assert!(config.validate().is_err());
@@ -290,6 +315,7 @@ mod tests {
         let config = ExtractionConfig::new("https://youtube.com/watch?v=test".to_string());
         let config = ExtractionConfig {
             interval: 65.0,
+            llm: None,
             ..config
         };
         assert!(config.validate().is_err());
@@ -300,6 +326,7 @@ mod tests {
         let config = ExtractionConfig::new("https://youtube.com/watch?v=test".to_string());
         let config = ExtractionConfig {
             threshold: -0.1,
+            llm: None,
             ..config
         };
         assert!(config.validate().is_err());
@@ -310,6 +337,7 @@ mod tests {
         let config = ExtractionConfig::new("https://youtube.com/watch?v=test".to_string());
         let config = ExtractionConfig {
             threshold: 1.5,
+            llm: None,
             ..config
         };
         assert!(config.validate().is_err());
@@ -320,6 +348,7 @@ mod tests {
         let config = ExtractionConfig::new("https://youtube.com/watch?v=test".to_string());
         let config = ExtractionConfig {
             languages: vec![],
+            llm: None,
             ..config
         };
         assert!(config.validate().is_err());
@@ -330,6 +359,7 @@ mod tests {
         let config = ExtractionConfig::new("https://youtube.com/watch?v=test".to_string());
         let config = ExtractionConfig {
             languages: vec!["xyz".to_string()],
+            llm: None,
             ..config
         };
         assert!(config.validate().is_err());
@@ -340,6 +370,7 @@ mod tests {
         let config = ExtractionConfig::new("https://youtube.com/watch?v=test".to_string());
         let config = ExtractionConfig {
             languages: vec!["eng".to_string(), "spa".to_string()],
+            llm: None,
             ..config
         };
         assert!(config.validate().is_ok());
@@ -350,6 +381,7 @@ mod tests {
         let config = ExtractionConfig::new("https://youtube.com/watch?v=test".to_string());
         let config = ExtractionConfig {
             memory_threshold_mb: 50,
+            llm: None,
             ..config
         };
         assert!(config.validate().is_err());
@@ -368,6 +400,52 @@ mod tests {
         assert_eq!(config.interval, 10.0);
         assert_eq!(config.threshold, 0.9);
         assert!(config.timestamps);
+        assert!(config.llm.is_none());
+    }
+
+    #[test]
+    fn test_llm_config_serialization() {
+        let llm_config = LlmConfig {
+            api_key: Some("test-key".to_string()),
+            api_base: "http://localhost:1234/v1".to_string(),
+            model: "test-model".to_string(),
+            prompt: "test-prompt".to_string(),
+        };
+        let config = ExtractionConfig {
+            youtube_url: "https://youtube.com/watch?v=test".to_string(),
+            interval: 5.0,
+            threshold: 0.85,
+            output_dir: PathBuf::from("."),
+            languages: vec!["eng".to_string()],
+            timestamps: false,
+            memory_threshold_mb: 500,
+            llm: Some(llm_config),
+        };
+
+        let json = serde_json::to_string(&config).unwrap();
+        let deserialized: ExtractionConfig = serde_json::from_str(&json).unwrap();
+
+        assert!(deserialized.llm.is_some());
+        let d_llm = deserialized.llm.unwrap();
+        assert_eq!(d_llm.api_key, Some("test-key".to_string()));
+        assert_eq!(d_llm.api_base, "http://localhost:1234/v1");
+        assert_eq!(d_llm.model, "test-model");
+        assert_eq!(d_llm.prompt, "test-prompt");
+    }
+
+    #[test]
+    fn test_config_without_llm_serialization() {
+        let json = r#"{
+            "youtube_url": "https://youtube.com/watch?v=test",
+            "interval": 5.0,
+            "threshold": 0.85,
+            "output_dir": ".",
+            "languages": ["eng"],
+            "timestamps": false,
+            "memory_threshold_mb": 500
+        }"#;
+        let deserialized: ExtractionConfig = serde_json::from_str(json).unwrap();
+        assert!(deserialized.llm.is_none());
     }
 
     #[test]
@@ -393,6 +471,7 @@ mod tests {
             threshold: 1.5,
             languages: vec![],
             memory_threshold_mb: 50,
+            llm: None,
             ..config
         };
 

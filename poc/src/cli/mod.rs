@@ -97,6 +97,30 @@ pub struct CliArgs {
         help = "Memory threshold in MB (default: 500, minimum: 100)"
     )]
     pub memory_threshold_mb: u64,
+
+    /// LLM API Key (optional for some local servers)
+    #[arg(long = "llm-api-key", env = "OPENAI_API_KEY", help = "LLM API Key")]
+    pub llm_api_key: Option<String>,
+
+    /// LLM API Base URL
+    #[arg(
+        long = "llm-api-base",
+        default_value = "http://localhost:1234/v1",
+        help = "LLM API Base URL (default: http://localhost:1234/v1)"
+    )]
+    pub llm_api_base: String,
+
+    /// LLM Model name
+    #[arg(
+        long = "llm-model",
+        default_value = "qwen/qwen3-vl-8b",
+        help = "LLM Model name (default: qwen/qwen3-vl-8b)"
+    )]
+    pub llm_model: String,
+
+    /// Enable LLM verification
+    #[arg(long = "llm-verify", help = "Enable LLM slide verification")]
+    pub llm_verify: bool,
 }
 
 impl CliArgs {
@@ -200,7 +224,7 @@ impl CliArgs {
     pub fn to_config(&self) -> DomainResult<ExtractionConfig> {
         self.validate()?;
 
-        let config = ExtractionConfig {
+        let mut config = ExtractionConfig {
             youtube_url: self.youtube_url.clone(),
             interval: self.interval,
             threshold: self.threshold,
@@ -208,7 +232,17 @@ impl CliArgs {
             languages: self.languages.clone(),
             timestamps: self.timestamps,
             memory_threshold_mb: self.memory_threshold_mb,
+            llm: None,
         };
+
+        if self.llm_verify {
+            config.llm = Some(crate::shared::domain::config::LlmConfig {
+                api_key: self.llm_api_key.clone(),
+                api_base: self.llm_api_base.clone(),
+                model: self.llm_model.clone(),
+                prompt: "Analyze this image from a video. Is it a presentation slide (containing text, diagrams, or bullet points) or a view of a person/speaker? Respond with exactly one word: 'SLIDE' or 'NOT_SLIDE'.".to_string(),
+            });
+        }
 
         // Validate the config using the existing validation logic
         config.validated()
@@ -225,6 +259,10 @@ impl Default for CliArgs {
             languages: vec!["eng".to_string()],
             timestamps: false,
             memory_threshold_mb: 500,
+            llm_api_key: None,
+            llm_api_base: "http://localhost:1234/v1".to_string(),
+            llm_model: "qwen/qwen3-vl-8b".to_string(),
+            llm_verify: false,
         }
     }
 }
@@ -397,6 +435,10 @@ mod tests {
             timestamps: true,
             memory_threshold_mb: 600,
             output_dir: temp_dir.clone(),
+            llm_api_key: None,
+            llm_api_base: "http://localhost:1234/v1".to_string(),
+            llm_model: "qwen/qwen3-vl-8b".to_string(),
+            llm_verify: false,
         };
 
         let config = args.to_config().unwrap();

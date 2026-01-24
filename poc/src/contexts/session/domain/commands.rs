@@ -11,6 +11,7 @@ pub struct StartExtractionSessionCommand {
     pub similarity_threshold: f64,
     pub confidence_threshold: f64,
     pub languages: Vec<String>,
+    pub llm_config: Option<crate::shared::domain::config::LlmConfig>,
 }
 
 impl Default for StartExtractionSessionCommand {
@@ -23,6 +24,7 @@ impl Default for StartExtractionSessionCommand {
             similarity_threshold: 0.95,
             confidence_threshold: 0.6,
             languages: vec!["eng".to_string()],
+            llm_config: None,
         }
     }
 }

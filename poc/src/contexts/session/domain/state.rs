@@ -18,6 +18,8 @@ pub struct SlideState {
     pub slide_index: u32,
     pub timestamp: f64,
     pub image_path: String,
+    #[serde(default)]
+    pub requires_human_review: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -36,7 +36,7 @@ async fn main() {
     let progress = Arc::new(Mutex::new(CliProgressReporter::new()));
 
     // 4. Prepare Command
-    let command = StartExtractionSessionCommand {
+    let mut command = StartExtractionSessionCommand {
         session_id: Id::new(),
         youtube_url: args.youtube_url,
         output_dir: args.output_dir.to_string_lossy().to_string(),
@@ -44,7 +44,17 @@ async fn main() {
         similarity_threshold: args.threshold,
         confidence_threshold: 0.6, // Default
         languages: args.languages,
+        llm_config: None,
     };
+
+    if args.llm_verify {
+        command.llm_config = Some(yt_sl_extractor::shared::domain::config::LlmConfig {
+            api_key: args.llm_api_key,
+            api_base: args.llm_api_base,
+            model: args.llm_model,
+            prompt: "Analyze this image from a video. Is it a presentation slide (containing text, diagrams, or bullet points) or a view of a person/speaker? Respond with exactly one word: 'SLIDE' or 'NOT_SLIDE'.".to_string(),
+        });
+    }
 
     // 5. Run Orchestrator
     info!(

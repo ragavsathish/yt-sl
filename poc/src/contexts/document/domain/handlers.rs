@@ -46,6 +46,10 @@ graph LR
 {% for slide in slides %}
 ### Slide {{ slide.slide_index }}
 
+{% if slide.requires_human_review %}
+> ⚠️ **Note:** This frame was identified by the AI as potentially not being a slide (e.g., speaker view). Please review.
+{% endif %}
+
 - **Timestamp:** {{ slide.timestamp | round(precision=2) }}s
 
 ![Slide {{ slide.slide_index }}](./slides/{{ slide.image_path | split(pat="/") | last }})
@@ -120,12 +124,14 @@ mod tests {
                     timestamp: 5.0,
                     image_path: "slide_0001.jpg".to_string(),
                     text: "Hello World".to_string(),
+                    requires_human_review: false,
                 },
                 SlideData {
                     slide_index: 2,
                     timestamp: 15.0,
                     image_path: "slide_0002.jpg".to_string(),
                     text: "Page 2 Content".to_string(),
+                    requires_human_review: true,
                 },
             ],
             output_path: output_path.to_str().unwrap().to_string(),
