@@ -1,0 +1,73 @@
+project:
+  name: YouTube Slide Extractor
+  description: Extract slides from educational videos
+  scope: MVP
+phases:
+  phase_1:
+    description: Initial Migration
+    features:
+    - FT-001
+    - FT-002
+    - FT-003
+    - FT-004
+    - FT-005
+    - FT-006
+    - FT-007
+    - FT-008
+epics:
+- id: EP-001
+  title: Core Functionality
+  status: in_progress
+  phases:
+  - phase_1
+  features:
+  - FT-001
+  - FT-002
+  - FT-003
+  - FT-004
+  - FT-005
+  - FT-006
+  - FT-007
+  - FT-008
+  note: Consolidated epic for migration
+features:
+- id: FT-001
+  title: Session Orchestration
+  phase: phase_1
+  epic: EP-001
+  status: in_progress
+- id: FT-002
+  title: Frame Extraction
+  phase: phase_1
+  epic: EP-001
+  status: in_progress
+- id: FT-003
+  title: Video Management
+  phase: phase_1
+  epic: EP-001
+  status: in_progress
+- id: FT-004
+  title: Deduplication
+  phase: phase_1
+  epic: EP-001
+  status: in_progress
+- id: FT-005
+  title: OCR Processing
+  phase: phase_1
+  epic: EP-001
+  status: in_progress
+- id: FT-006
+  title: CLI Interface
+  phase: phase_1
+  epic: EP-001
+  status: in_progress
+- id: FT-007
+  title: Document Generation
+  phase: phase_1
+  epic: EP-001
+  status: in_progress
+- id: FT-008
+  title: Error Handling
+  phase: phase_1
+  epic: EP-001
+  status: in_progress

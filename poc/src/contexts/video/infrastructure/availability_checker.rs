@@ -183,7 +183,14 @@ impl AvailabilityChecker {
         let json_output = timeout(
             self.config.timeout,
             Command::new("yt-dlp")
-                .args(["--dump-json", "--no-playlist", "--no-warnings", url])
+                .args([
+                    "--extractor-args",
+                    "youtube:player_client=web",
+                    "--dump-json",
+                    "--no-playlist",
+                    "--no-warnings",
+                    url,
+                ])
                 .output(),
         )
         .await

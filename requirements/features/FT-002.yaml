@@ -1,0 +1,68 @@
+id: FT-002
+title: Frame Extraction
+epic_id: EP-001
+phase: phase_1
+priority: medium
+status: in_progress
+description: Features related to Frame Extraction (formerly FRAME)
+business_value: Migration from backlog
+user_stories:
+- id: US-FRAME-01
+  as_a: System
+  i_want: to extract frames from the video at regular intervals
+  so_that: I can capture all potential slides from the presentation
+  acceptance_criteria:
+  - Frames are extracted starting from the beginning of the video
+  - 'Frames are extracted at the configured interval (default: 5 seconds)'
+  - Frame number and timestamp are recorded for each extracted frame
+  - Frames are saved as PNG images in a temporary directory
+  - Frame extraction progress is reported to the session
+  - Frames are extracted in order from start to end of video
+  - Last frame of video is always extracted regardless of interval
+  priority: medium
+  story_quality: unknown
+  status: implemented
+  note: Extract Frames at Intervals
+- id: US-FRAME-02
+  as_a: System
+  i_want: to compute a perceptual hash for each extracted frame
+  so_that: I can identify similar frames for deduplication
+  acceptance_criteria:
+  - Perceptual hash is computed using image hashing algorithm
+  - Hash is deterministic (same image always produces same hash)
+  - Hash is resistant to minor image variations (compression artifacts, slight shifts)
+  - Hash is stored with the frame metadata
+  - Hash computation completes in under 100ms per frame
+  - Hash computation failure results in clear error message with frame ID
+  priority: medium
+  story_quality: unknown
+  status: implemented
+  note: Compute Perceptual Hash
+- id: US-FRAME-03
+  as_a: System
+  i_want: to handle errors during frame extraction gracefully
+  so_that: a single corrupt frame doesn't cause the entire extraction to fail
+  acceptance_criteria:
+  - Corrupt frames are skipped with warning logged
+  - Skipped frames do not affect subsequent frame extraction
+  - Maximum of 10% of frames can be skipped before session fails
+  - Skipped frame count is included in summary report
+  - Frame extraction errors include frame number and timestamp in error message
+  priority: medium
+  story_quality: unknown
+  status: implemented
+  note: Handle Frame Extraction Errors
+- id: US-FRAME-04
+  as_a: System
+  i_want: to optimize frame storage to minimize disk usage
+  so_that: the extraction process doesn't consume excessive disk space
+  acceptance_criteria:
+  - Frames are stored with compression
+  - Temporary frames are deleted as soon as they are no longer needed
+  - Frame filenames include session ID and frame number for easy identification
+  - Frame storage directory is cleaned up after deduplication completes
+  - Maximum disk usage for frames is limited to 10GB
+  priority: medium
+  story_quality: unknown
+  status: implemented
+  note: Optimize Frame Storage

@@ -1,0 +1,70 @@
+id: FT-005
+title: OCR Processing
+epic_id: EP-001
+phase: phase_1
+priority: medium
+status: in_progress
+description: Features related to OCR Processing (formerly OCR)
+business_value: Migration from backlog
+user_stories:
+- id: US-OCR-01
+  as_a: System
+  i_want: to extract text content from each unique slide using OCR
+  so_that: the Markdown output includes searchable text from the slides
+  acceptance_criteria:
+  - OCR is performed on each unique slide image
+  - Extracted text is stored with the slide metadata
+  - OCR confidence score is calculated and stored
+  - OCR language is detected and stored
+  - OCR progress is reported to the session
+  - OCR completes in under 5 seconds per slide
+  - OCR failure for a slide is logged but does not stop processing
+  priority: medium
+  story_quality: unknown
+  status: implemented
+  note: Extract Text from Slides
+- id: US-OCR-02
+  as_a: Researcher, Student, Content Creator, or Educator
+  i_want: to specify which languages the OCR should recognize
+  so_that: text from non-English slides is extracted correctly
+  acceptance_criteria:
+  - User can specify one or more OCR languages via command line
+  - 'Supported languages include: English, Spanish, French, German, Japanese, Chinese, Korean'
+  - Language codes are validated against supported languages
+  - OCR uses specified languages in priority order
+  - Default language is English if not specified
+  - Language detection can be enabled to auto-detect slide language
+  priority: medium
+  story_quality: unknown
+  status: implemented
+  note: Support Multiple Languages
+- id: US-OCR-03
+  as_a: System
+  i_want: to flag OCR results with low confidence
+  so_that: users are aware of potentially inaccurate text extractions
+  acceptance_criteria:
+  - OCR confidence threshold is set to 0.5
+  - Text with confidence below threshold is flagged in output
+  - Flagged text includes confidence score in output
+  - Low confidence does not prevent text from being included
+  - Confidence statistics are included in summary report
+  - Confidence threshold is configurable via command line
+  priority: medium
+  story_quality: unknown
+  status: implemented
+  note: Filter Low Confidence Results
+- id: US-OCR-04
+  as_a: System
+  i_want: to handle OCR failures gracefully
+  so_that: a single failed OCR doesn't prevent the entire process from completing
+  acceptance_criteria:
+  - OCR failures are logged with slide ID and error reason
+  - Failed OCR does not prevent other slides from being processed
+  - Failed OCR is indicated in output with placeholder text
+  - Maximum of 20% of slides can fail OCR before session fails
+  - OCR failure count is included in summary report
+  - Common OCR failure reasons are explained to user
+  priority: medium
+  story_quality: unknown
+  status: implemented
+  note: Handle OCR Failures

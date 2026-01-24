@@ -1,0 +1,74 @@
+id: FT-003
+title: Video Management
+epic_id: EP-001
+phase: phase_1
+priority: medium
+status: in_progress
+description: Features related to Video Management (formerly VIDEO)
+business_value: Migration from backlog
+user_stories:
+- id: US-VIDEO-01
+  as_a: Researcher, Student, Content Creator, or Educator
+  i_want: the system to validate that I've provided a valid YouTube URL
+  so_that: I don't waste time attempting to process invalid URLs
+  acceptance_criteria:
+  - URLs starting with `https://www.youtube.com/` are accepted
+  - URLs starting with `https://youtu.be/` are accepted
+  - Video ID is correctly extracted from standard YouTube URL format
+  - Video ID is correctly extracted from shortened YouTube URL format
+  - Invalid URLs (non-YouTube domains) are rejected with clear error message
+  - URLs without valid video IDs are rejected with clear error message
+  - Validation completes in under 1 second
+  priority: medium
+  story_quality: unknown
+  status: implemented
+  note: Validate YouTube URL
+- id: US-VIDEO-02
+  as_a: System
+  i_want: to download the YouTube video to a temporary location
+  so_that: frames can be extracted from the video
+  acceptance_criteria:
+  - Video is downloaded to a temporary directory
+  - Video is downloaded in the highest available quality up to 1080p
+  - Download progress is reported to the session
+  - Video duration is captured after download completes
+  - Video resolution is captured after download completes
+  - Download is retried up to 3 times with exponential backoff on failure
+  - Download fails with clear error message if video is unavailable or private
+  - Download fails with clear error message if video exceeds 4 hours
+  - Download timeout is set to 30 minutes per hour of video duration
+  priority: medium
+  story_quality: unknown
+  status: implemented
+  note: Download Video
+- id: US-VIDEO-03
+  as_a: System
+  i_want: to verify that the video is publicly available before downloading
+  so_that: I can fail fast and provide a clear error message
+  acceptance_criteria:
+  - Video availability is checked before download begins
+  - Private videos are rejected with clear error message
+  - Age-restricted videos are rejected with clear error message
+  - Deleted videos are rejected with clear error message
+  - Region-locked videos are rejected with clear error message
+  - Video metadata (title, duration, resolution) is retrieved if available
+  - Availability check completes in under 5 seconds
+  priority: medium
+  story_quality: unknown
+  status: implemented
+  note: Verify Video Availability
+- id: US-VIDEO-04
+  as_a: System
+  i_want: to handle network timeouts gracefully during video download
+  so_that: temporary network issues don't cause permanent failure
+  acceptance_criteria:
+  - Network timeout is set to 60 seconds per connection attempt
+  - Timeout triggers retry with exponential backoff
+  - Maximum of 3 retry attempts are made
+  - All retries exhausted results in clear error message with timeout duration
+  - Partial downloads are cleaned up before retry
+  - Timeout duration is configurable via environment variable
+  priority: medium
+  story_quality: unknown
+  status: implemented
+  note: Handle Network Timeouts

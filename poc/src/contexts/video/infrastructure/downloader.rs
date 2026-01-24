@@ -38,8 +38,11 @@ impl VideoDownloader {
         // Execute yt-dlp
         // -f mp4: preferred format
         // -o: output path
+        // --extractor-args: use web client to avoid 403 errors
         let output = Command::new("yt-dlp")
             .args([
+                "--extractor-args",
+                "youtube:player_client=web",
                 "-f",
                 "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
                 "-o",
