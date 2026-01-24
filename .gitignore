@@ -43,3 +43,4 @@ temp/
 .env.*.local
 output*
 yt-sl-extractor
+ggml-metal.metal

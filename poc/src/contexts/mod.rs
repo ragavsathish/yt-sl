@@ -3,4 +3,5 @@ pub mod document;
 pub mod frame;
 pub mod ocr;
 pub mod session;
+pub mod transcription;
 pub mod video;

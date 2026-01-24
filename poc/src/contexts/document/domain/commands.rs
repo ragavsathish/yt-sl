@@ -8,6 +8,7 @@ pub struct SlideData {
     pub timestamp: f64,
     pub image_path: String,
     pub text: String,
+    pub transcription: Option<String>,
     #[serde(default)]
     pub requires_human_review: bool,
 }
@@ -20,6 +21,7 @@ pub struct GenerateDocumentCommand {
     pub url: String,
     pub duration: u64,
     pub slides: Vec<SlideData>,
+    pub transcription: Option<String>,
     pub output_path: String,
     pub include_timeline_diagram: bool,
     pub generate_pdf: bool,
@@ -34,6 +36,7 @@ impl Default for GenerateDocumentCommand {
             url: String::new(),
             duration: 0,
             slides: Vec::new(),
+            transcription: None,
             output_path: "output.md".to_string(),
             include_timeline_diagram: true,
             generate_pdf: false,

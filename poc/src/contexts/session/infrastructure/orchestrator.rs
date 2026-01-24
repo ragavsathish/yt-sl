@@ -15,6 +15,12 @@ use crate::contexts::ocr::domain::handlers::handle_extract_text;
 use crate::contexts::session::domain::commands::StartExtractionSessionCommand;
 use crate::contexts::session::domain::events::DocumentGenerated;
 use crate::contexts::session::domain::state::{SessionState, SessionStatus};
+use crate::contexts::transcription::domain::handlers::TranscriptionHandler;
+use crate::contexts::transcription::domain::ports::TranscriberPort;
+use crate::contexts::transcription::infrastructure::{
+    audio_extractor::AudioExtractor, native_transcriber::NativeWhisperTranscriber,
+    openai_transcriber::OpenAiTranscriber,
+};
 use crate::contexts::video::domain::commands::DownloadVideoCommand;
 use crate::contexts::video::infrastructure::{AvailabilityChecker, UrlValidator, VideoDownloader};
 use crate::shared::domain::{DomainResult, Id};
@@ -108,8 +114,43 @@ impl SessionOrchestrator {
         }
         info!("Video available at: {}", state.video_path.as_ref().unwrap());
 
-        // 3. Extract Frames
+        // 2b. Transcribe Audio
         if state.status == SessionStatus::VideoDownloaded {
+            if let Some(p) = &progress {
+                p.lock().await.set_stage("Transcribing audio...");
+            }
+            info!("Step 2b: Extracting audio and transcribing...");
+
+            let audio_extractor = Arc::new(AudioExtractor::new());
+
+            let transcriber: Arc<dyn TranscriberPort> =
+                if let Ok(base_url) = std::env::var("WHISPER_API_BASE_URL") {
+                    let api_key = std::env::var("WHISPER_API_KEY")
+                        .unwrap_or_else(|_| "sk-placeholder".to_string());
+                    info!("Using OpenAI Whisper API at {}", base_url);
+                    Arc::new(OpenAiTranscriber::new(base_url, api_key))
+                } else {
+                    info!("Using Native Whisper (local model)");
+                    Arc::new(NativeWhisperTranscriber::new().await?)
+                };
+
+            let handler = TranscriptionHandler::new(audio_extractor, transcriber);
+
+            let (_audio_event, text_event) = handler
+                .handle(
+                    Id::new(),
+                    state.video_path.as_ref().unwrap().clone(),
+                    session_dir.clone(),
+                )
+                .await?;
+
+            state.transcription = Some(text_event.result);
+            state.status = SessionStatus::AudioTranscribed;
+            Self::save_state(&state_path, &state)?;
+        }
+
+        // 3. Extract Frames
+        if state.status == SessionStatus::AudioTranscribed {
             if let Some(p) = &progress {
                 p.lock().await.set_stage("Extracting frames...");
             }
@@ -302,11 +343,34 @@ impl SessionOrchestrator {
 
                 let (ocr_result, _) = handle_extract_text(ocr_cmd)?;
 
+                // Map transcription segments to this slide
+                let mut slide_transcription = None;
+                if let Some(transcription) = &state.transcription {
+                    let start_time = slide_state.timestamp;
+                    let end_time = if i + 1 < state.slides.len() {
+                        state.slides[i + 1].timestamp
+                    } else {
+                        metadata.duration as f64
+                    };
+
+                    let texts: Vec<String> = transcription
+                        .segments
+                        .iter()
+                        .filter(|s| s.start >= start_time && s.start < end_time)
+                        .map(|s| s.text.clone())
+                        .collect();
+
+                    if !texts.is_empty() {
+                        slide_transcription = Some(texts.join(" "));
+                    }
+                }
+
                 slides_data.push(SlideData {
                     slide_index: slide_state.slide_index,
                     timestamp: slide_state.timestamp,
                     image_path: slide_state.image_path.clone(),
                     text: ocr_result.text,
+                    transcription: slide_transcription,
                     requires_human_review: slide_state.requires_human_review,
                 });
                 if let Some(p) = &progress {
@@ -324,6 +388,7 @@ impl SessionOrchestrator {
                 url: command.youtube_url.clone(),
                 duration: metadata.duration,
                 slides: slides_data.clone(),
+                transcription: state.transcription.as_ref().map(|t| t.full_text.clone()),
                 output_path: doc_path.clone(),
                 include_timeline_diagram: true,
                 generate_pdf: command.generate_pdf,
@@ -348,6 +413,7 @@ impl SessionOrchestrator {
                     url: command.youtube_url.clone(),
                     duration: metadata.duration,
                     slides: cleaned_slides_data,
+                    transcription: state.transcription.as_ref().map(|t| t.full_text.clone()),
                     output_path: cleaned_doc_path.clone(),
                     include_timeline_diagram: true,
                     generate_pdf: command.generate_pdf,

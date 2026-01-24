@@ -1,3 +1,4 @@
+use crate::contexts::transcription::domain::state::TranscriptionResult;
 use crate::contexts::video::infrastructure::VideoMetadata;
 use crate::shared::domain::{Id, Session};
 use serde::{Deserialize, Serialize};
@@ -7,6 +8,7 @@ pub enum SessionStatus {
     Starting,
     MetadataFetched,
     VideoDownloaded,
+    AudioTranscribed,
     FramesExtracted,
     UniqueSlidesIdentified,
     Completed,
@@ -30,6 +32,7 @@ pub struct SessionState {
     pub video_path: Option<String>,
     pub frames_dir: Option<String>,
     pub slides_dir: Option<String>,
+    pub transcription: Option<TranscriptionResult>,
     pub report_path: Option<String>,
     pub cleaned_report_path: Option<String>,
     pub slides: Vec<SlideState>,
@@ -44,6 +47,7 @@ impl SessionState {
             video_path: None,
             frames_dir: None,
             slides_dir: None,
+            transcription: None,
             report_path: None,
             cleaned_report_path: None,
             slides: Vec::new(),

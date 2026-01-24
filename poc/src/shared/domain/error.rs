@@ -70,6 +70,12 @@ pub enum ExtractionError {
     #[error("Markdown generation failed: {0}")]
     MarkdownGenerationFailed(String),
 
+    #[error("Audio extraction failed: {0}")]
+    AudioExtractionFailed(String),
+
+    #[error("Transcription failed: {0}")]
+    TranscriptionFailed(String),
+
     #[error("No unique slides found")]
     NoUniqueSlidesFound,
 
@@ -169,6 +175,8 @@ impl ExtractionError {
             ExtractionError::HashComputationFailed(_) => ErrorCategory::Processing,
             ExtractionError::OcrFailed(_, _) => ErrorCategory::Processing,
             ExtractionError::MarkdownGenerationFailed(_) => ErrorCategory::Processing,
+            ExtractionError::AudioExtractionFailed(_) => ErrorCategory::Processing,
+            ExtractionError::TranscriptionFailed(_) => ErrorCategory::Processing,
             ExtractionError::NoUniqueSlidesFound => ErrorCategory::Processing,
             ExtractionError::OutputDirectoryNotWritable(_) => ErrorCategory::FileSystem,
             ExtractionError::InsufficientMemory(_) => ErrorCategory::Memory,
@@ -265,6 +273,24 @@ impl ExtractionError {
                 format!(
                     "Failed to generate Markdown document: {}. \
                     Please check the output directory permissions and try again.",
+                    reason
+                )
+            }
+
+            ExtractionError::AudioExtractionFailed(reason) => {
+                format!(
+                    "Failed to extract audio from the video: {}. \
+                    This may be due to a corrupted video file or an issue with FFmpeg. \
+                    Please ensure FFmpeg is properly installed and try again.",
+                    reason
+                )
+            }
+
+            ExtractionError::TranscriptionFailed(reason) => {
+                format!(
+                    "Failed to transcribe the audio: {}. \
+                    This could be due to a network issue with the Whisper API or a problem with the audio file. \
+                    Please ensure your Whisper server is running and accessible.",
                     reason
                 )
             }
