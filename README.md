@@ -4,11 +4,15 @@ A robust Rust-based CLI tool that automatically extracts unique slides from YouT
 
 ## 🚀 Features
 
-- **Automated Pipeline**: URL validation → Video download → Frame extraction → Perceptual deduplication → OCR → Markdown generation.
+- **Automated Pipeline**: URL validation → Video download → Frame extraction → Perceptual deduplication → **AI Verification** → OCR → Markdown generation.
 - **Intelligent Deduplication**: Uses perceptual hashing and Hamming distance to group similar frames and extract only unique slides.
+- **AI-Powered Verification**: Integrates with OpenAI-compatible Vision APIs (e.g., LM Studio, GPT-4o) to filter out non-slide content like speaker views or audience shots.
 - **Multi-Language OCR**: Powered by Tesseract, allowing text extraction in multiple languages (e.g., English, German, Spanish).
 - **Session Recovery**: Stage-based checkpointing allows resuming interrupted extractions from where they left off.
-- **Professional Reports**: Generates a `report.md` with video metadata, slide images, OCR text, and a **Mermaid.js timeline diagram**.
+- **Professional Dual Reports**:
+    - `report.md`: Full detailed report with all slides and AI warnings for potential non-slides.
+    - `report_cleaned.md`: A concise report containing only the frames verified as slides.
+- **Interactive Cleanup**: Prompts to delete tagged non-presentation slide images at the end of the process to save storage.
 - **Real-Time Progress**: Visual feedback using multi-progress bars for every stage of the process.
 - **Resource Management**: Automatically cleans up large temporary video and frame files after processing.
 
@@ -66,17 +70,30 @@ cargo run -p yt-sl-extractor -- --url "https://www.youtube.com/watch?v=UF4krOvbe
 
 ### Advanced Options
 
-```bash
+```text
 Options:
   -u, --url <URL>               The YouTube video URL to process
-  -i, --interval <SECONDS>       Frame extraction interval in seconds (default: 5.0)
+  -i, --interval <SECONDS>      Frame extraction interval (default: 5.0, max: 60.0)
   -t, --threshold <THRESHOLD>   Slide similarity threshold (0.0 - 1.0, default: 0.85)
   -o, --output <DIR>            Output directory (default: ".")
-  -l, --languages <LANGS>       OCR languages, comma-separated (e.g., "eng,deu", default: "eng")
+  -l, --languages <LANGS>       OCR languages, comma-separated (default: "eng")
   -s, --timestamps              Include timestamps in the output filename
-  -m, --memory-threshold <MB>   Memory threshold in MB (default: 500)
+  -m, --memory-threshold <MB>   Memory threshold for frame processing (default: 500)
+      --llm-verify              Enable AI-powered slide verification
+      --llm-api-base <URL>      OpenAI-compatible API base (default: http://localhost:1234/v1)
+      --llm-api-key <KEY>       API key (optional for local servers)
+      --llm-model <NAME>        Vision model name (default: qwen/qwen3-vl-8b)
   -h, --help                    Print help
   -V, --version                 Print version
+```
+
+### Example: AI-Verified Extraction with LM Studio
+
+```bash
+yt-sl-extractor --url "https://www.youtube.com/watch?v=..." \
+  --llm-verify \
+  --llm-api-base "http://localhost:1234/v1" \
+  --llm-model "qwen/qwen3-vl-8b"
 ```
 
 ### Example: High-Precision Extraction with Multiple Languages
@@ -89,6 +106,16 @@ cargo run -p yt-sl-extractor -- \
   --languages eng,spa \
   --output "./lecture_notes"
 ```
+
+## 🧠 AI Slide Verification
+
+The tool supports an optional AI verification step to distinguish between actual presentation slides and other content (like the speaker's face or audience shots). This uses any **OpenAI-compatible Vision API**.
+
+For a completely private and local experience, we recommend using **[LM Studio](https://lmstudio.ai/)** with a vision-capable model like `qwen/qwen3-vl-8b` or `llava`.
+
+1. Start the LM Studio Local Server (usually at `http://localhost:1234`).
+2. Run the extractor with the `--llm-verify` flag.
+3. The tool will flag potential non-slides in the final report and offer to delete the corresponding images to keep your workspace clean.
 
 ## 📂 Project Structure
 
