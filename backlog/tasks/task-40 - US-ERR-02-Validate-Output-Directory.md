@@ -4,9 +4,10 @@ title: US-ERR-02 Validate Output Directory
 status: Done
 assignee: []
 created_date: '2026-01-15 22:02'
-updated_date: '2026-01-15 20:07'
+updated_date: '2026-01-24 21:04'
 labels: []
 dependencies: []
+ordinal: 40000
 ---
 
 **As a** System

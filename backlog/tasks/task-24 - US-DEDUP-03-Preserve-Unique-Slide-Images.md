@@ -4,9 +4,10 @@ title: US-DEDUP-03 Preserve Unique Slide Images
 status: Done
 assignee: []
 created_date: '2026-01-15 22:02'
-updated_date: '2026-01-15 20:14'
+updated_date: '2026-01-24 21:04'
 labels: []
 dependencies: []
+ordinal: 33000
 ---
 
 **As a** System

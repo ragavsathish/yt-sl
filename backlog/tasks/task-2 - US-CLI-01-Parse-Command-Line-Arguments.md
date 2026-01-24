@@ -4,9 +4,10 @@ title: US-CLI-01 Parse Command Line Arguments
 status: Done
 assignee: []
 created_date: '2026-01-15 22:02'
-updated_date: '2026-01-15 20:19'
+updated_date: '2026-01-24 21:04'
 labels: []
 dependencies: []
+ordinal: 2000
 ---
 
 **As a** Researcher, Student, Content Creator, or Educator

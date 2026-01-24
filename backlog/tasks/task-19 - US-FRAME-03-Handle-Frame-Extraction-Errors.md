@@ -4,9 +4,10 @@ title: US-FRAME-03 Handle Frame Extraction Errors
 status: Done
 assignee: []
 created_date: '2026-01-15 22:02'
-updated_date: '2026-01-15 20:19'
+updated_date: '2026-01-24 21:04'
 labels: []
 dependencies: []
+ordinal: 11000
 ---
 
 **As a** System
