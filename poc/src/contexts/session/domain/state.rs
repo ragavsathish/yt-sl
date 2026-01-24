@@ -31,6 +31,7 @@ pub struct SessionState {
     pub frames_dir: Option<String>,
     pub slides_dir: Option<String>,
     pub report_path: Option<String>,
+    pub cleaned_report_path: Option<String>,
     pub slides: Vec<SlideState>,
 }
 
@@ -44,6 +45,7 @@ impl SessionState {
             frames_dir: None,
             slides_dir: None,
             report_path: None,
+            cleaned_report_path: None,
             slides: Vec::new(),
         }
     }

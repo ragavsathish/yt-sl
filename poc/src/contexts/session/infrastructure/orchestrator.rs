@@ -39,6 +39,7 @@ impl SessionOrchestrator {
         let frames_dir = format!("{}/frames", session_dir);
         let slides_dir = format!("{}/slides", session_dir);
         let doc_path = format!("{}/report.md", session_dir);
+        let cleaned_doc_path = format!("{}/report_cleaned.md", session_dir);
         let state_path = format!("{}/session.json", session_dir);
 
         // Ensure session directory exists
@@ -314,21 +315,43 @@ impl SessionOrchestrator {
             }
 
             if let Some(p) = &progress {
-                p.lock().await.set_stage("Generating report...");
+                p.lock().await.set_stage("Generating reports...");
             }
+            // Report 1: Full report with warnings
             let doc_cmd = GenerateDocumentCommand {
                 video_id: Id::new(),
-                title: metadata.title,
-                url: command.youtube_url,
+                title: metadata.title.clone(),
+                url: command.youtube_url.clone(),
                 duration: metadata.duration,
-                slides: slides_data,
+                slides: slides_data.clone(),
                 output_path: doc_path.clone(),
                 include_timeline_diagram: true,
             };
 
             let doc_event = handle_generate_document(doc_cmd)?;
-
             state.report_path = Some(doc_event.file_path);
+
+            // Report 2: Cleaned report removing non-slides
+            let cleaned_slides_data: Vec<SlideData> = slides_data
+                .into_iter()
+                .filter(|s| !s.requires_human_review)
+                .collect();
+
+            if !cleaned_slides_data.is_empty() {
+                let cleaned_doc_cmd = GenerateDocumentCommand {
+                    video_id: Id::new(),
+                    title: format!("{} (Cleaned)", metadata.title),
+                    url: command.youtube_url,
+                    duration: metadata.duration,
+                    slides: cleaned_slides_data,
+                    output_path: cleaned_doc_path.clone(),
+                    include_timeline_diagram: true,
+                };
+
+                let cleaned_doc_event = handle_generate_document(cleaned_doc_cmd)?;
+                state.cleaned_report_path = Some(cleaned_doc_event.file_path);
+            }
+
             state.status = SessionStatus::Completed;
             Self::save_state(&state_path, &state)?;
         }
@@ -359,6 +382,7 @@ impl SessionOrchestrator {
         Ok(DocumentGenerated {
             video_id: Id::new(),
             file_path: state.report_path.unwrap(),
+            cleaned_file_path: state.cleaned_report_path,
             slide_count: state.slides.len() as u32,
             review_count: review_slides.len() as u32,
             review_slides,
