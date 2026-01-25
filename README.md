@@ -15,6 +15,7 @@ A robust Rust-based CLI tool that automatically extracts unique slides from YouT
 - **Interactive Cleanup**: Prompts to delete tagged non-presentation slide images at the end of the process to save storage.
 - **Real-Time Progress**: Visual feedback using multi-progress bars for every stage of the process.
 - **Resource Management**: Automatically cleans up large temporary video and frame files after processing.
+- **Smart Caching**: Caches downloaded videos and extracted audio to `/tmp/yt-sl-cache` to skip redundant steps in future runs, saving bandwidth and processing time.
 
 ## 🛠 Prerequisites
 
@@ -128,10 +129,27 @@ For a completely private and local experience, we recommend using **[LM Studio](
 
 ## 🧪 Testing
 
-The project includes a comprehensive test suite with 230+ tests.
+The project includes a comprehensive test suite with 230+ tests, covering unit logic, integration, and end-to-end pipelines.
 
+### Run All Tests
 ```bash
 cargo test -p yt-sl-extractor
+```
+
+### Run Unit Tests Only
+To run fast unit tests (skipping slow integration tests):
+```bash
+cargo test --lib --bins
+```
+
+### Run End-to-End (E2E) Tests
+These tests run the full pipeline and require external dependencies (yt-dlp, ffmpeg, tesseract) to be installed.
+```bash
+# Run the full pipeline test
+cargo test --test e2e_pipeline
+
+# Run LLM integration test (requires API keys/server)
+cargo test --test e2e_llm
 ```
 
 ## 📝 License
