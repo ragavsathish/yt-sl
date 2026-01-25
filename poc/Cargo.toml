@@ -35,6 +35,8 @@ hound = "3.5"
 libc = "0.2"
 
 [dev-dependencies]
+tokio = { version = "1.35", features = ["macros", "rt-multi-thread"] }
+tempfile = "3.10"
 proptest = "1.4"
 pretty_assertions = "1.4"
 wiremock = "0.5"

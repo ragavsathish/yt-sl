@@ -36,9 +36,22 @@ poc/
 
 ```bash
 cd poc
-cargo test              # Run all tests (22 tests)
+cargo test              # Run all tests
 cargo test -- --nocapture  # Show print output
 ```
+
+### Running E2E Tests
+
+To run the end-to-end pipeline test with a real YouTube video:
+
+```bash
+cargo test --test e2e_pipeline -- --nocapture
+```
+
+**Note:** This test requires:
+1. Active internet connection (to download video)
+2. `yt-dlp`, `ffmpeg`, `tesseract`, `pandoc`, `typst` installed and in PATH
+3. `ggml-metal.metal` in the `poc/` directory (for macOS Metal support)
 
 ## What's Implemented
 
