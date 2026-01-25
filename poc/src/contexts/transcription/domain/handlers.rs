@@ -25,11 +25,13 @@ impl TranscriptionHandler {
     pub async fn handle(
         &self,
         video_id: Id<YouTubeVideo>,
+        youtube_video_id: String,
         video_path: String,
         output_dir: String,
     ) -> DomainResult<(AudioExtracted, TextTranscribed)> {
         let extract_command = ExtractAudioCommand {
             video_id: video_id.clone(),
+            youtube_video_id,
             video_path,
             output_dir,
         };
@@ -64,6 +66,7 @@ mod tests {
     #[tokio::test]
     async fn test_transcription_flow() {
         let video_id = Id::<YouTubeVideo>::new();
+        let youtube_id = "dQw4w9WgXcQ".to_string();
         let video_path = "/path/to/video.mp4".to_string();
         let output_dir = "/path/to/output".to_string();
         let expected_audio_path = "/path/to/output/video.wav".to_string();
@@ -94,7 +97,9 @@ mod tests {
         let handler =
             TranscriptionHandler::new(Arc::new(mock_extractor), Arc::new(mock_transcriber));
 
-        let result = handler.handle(video_id, video_path, output_dir).await;
+        let result = handler
+            .handle(video_id, youtube_id, video_path, output_dir)
+            .await;
 
         assert!(result.is_ok());
         let (audio_event, text_event) = result.unwrap();

@@ -208,6 +208,7 @@ mod tests {
     fn test_handle_download_video_success() {
         let command = DownloadVideoCommand {
             video_id: Id::new(),
+            youtube_video_id: "dQw4w9WgXcQ".to_string(),
         };
         let result = handle_download_video(command, "/tmp", 180);
         assert!(result.is_ok());
@@ -220,6 +221,7 @@ mod tests {
     fn test_handle_download_video_empty_path() {
         let command = DownloadVideoCommand {
             video_id: Id::new(),
+            youtube_video_id: "dQw4w9WgXcQ".to_string(),
         };
         let result = handle_download_video(command, "", 0);
         assert!(matches!(result, Err(ExtractionError::DownloadFailed(_, _))));

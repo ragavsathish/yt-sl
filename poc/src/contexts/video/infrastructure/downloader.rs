@@ -8,6 +8,7 @@ use crate::contexts::video::domain::state::VideoDownloaded;
 use crate::shared::domain::{DomainResult, ExtractionError};
 use std::path::Path;
 use tokio::process::Command;
+use tracing::info;
 
 /// Video downloader using yt-dlp.
 pub struct VideoDownloader;
@@ -24,7 +25,7 @@ impl VideoDownloader {
         url: &str,
         output_dir: &str,
     ) -> DomainResult<VideoDownloaded> {
-        let video_path = format!("{}/{}.mp4", output_dir, command.video_id);
+        let video_path = format!("{}/{}.mp4", output_dir, command.youtube_video_id);
 
         if let Some(parent) = Path::new(&video_path).parent() {
             std::fs::create_dir_all(parent).map_err(|e| {
@@ -33,6 +34,21 @@ impl VideoDownloader {
                     e
                 ))
             })?;
+        }
+
+        if Path::new(&video_path).exists() {
+            info!(
+                "Video file already exists at {}. Skipping download.",
+                video_path
+            );
+            return Ok(VideoDownloaded {
+                video_id: command.video_id,
+                path: video_path,
+                duration_sec: 0,
+                width: 1920,
+                height: 1080,
+                file_size: 0,
+            });
         }
 
         // Execute yt-dlp

@@ -53,6 +53,13 @@ impl UrlValidator {
         Ok((url_str.to_string(), video_id))
     }
 
+    /// Public method to extract video ID string for caching.
+    pub fn extract_video_id_public(&self, url_str: &str) -> DomainResult<String> {
+        let parsed_url = Url::parse(url_str)
+            .map_err(|e| ExtractionError::InvalidUrl(format!("Invalid URL format: {}", e)))?;
+        self.extract_video_id(&parsed_url)
+    }
+
     fn is_youtube_url(&self, url: &Url) -> bool {
         let host = url.host_str().unwrap_or("");
         host == "www.youtube.com"

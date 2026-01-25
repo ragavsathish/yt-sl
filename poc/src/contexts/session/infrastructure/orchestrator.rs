@@ -82,6 +82,15 @@ impl SessionOrchestrator {
             let validator = UrlValidator::new();
             let (url, video_id) = validator.validate_and_extract(&command.youtube_url)?;
 
+            // Use shared cache directory for downloads
+            let cache_dir = "/tmp/yt-sl-cache";
+            fs::create_dir_all(cache_dir).map_err(|e| {
+                crate::shared::domain::ExtractionError::FileSystemError(format!(
+                    "Failed to create cache directory: {}",
+                    e
+                ))
+            })?;
+
             let checker = AvailabilityChecker::new();
             let metadata = checker.check_availability(&video_id, &url).await?;
             info!("Video found: '{}' ({}s)", metadata.title, metadata.duration);
@@ -93,19 +102,34 @@ impl SessionOrchestrator {
 
         let metadata = state.video_metadata.as_ref().unwrap().clone();
 
+        // Re-validate to get video ID string for subsequent steps
+        // The previous re-validation block was unused and redundant because we re-extract safely below
+        // I will remove the unused variable warning by removing the unused block.
+
         // 2. Download Video
         if state.status == SessionStatus::MetadataFetched {
             if let Some(p) = &progress {
                 p.lock().await.set_stage("Downloading video...");
             }
             info!("Step 2: Downloading video...");
+
+            // Get raw ID properly
+            let validator = UrlValidator::new();
+            let raw_id = validator
+                .extract_video_id_public(&command.youtube_url)
+                .unwrap_or("unknown".to_string());
+
             let url = command.youtube_url.clone();
             let downloader = VideoDownloader::new();
             let download_cmd = DownloadVideoCommand {
                 video_id: Id::new(),
+                youtube_video_id: raw_id.clone(),
             };
+
+            // Use cache dir for output
+            let cache_dir = "/tmp/yt-sl-cache";
             let download_event = downloader
-                .download_video(download_cmd, &url, &session_dir)
+                .download_video(download_cmd, &url, cache_dir)
                 .await?;
 
             state.video_path = Some(download_event.path);
@@ -120,6 +144,12 @@ impl SessionOrchestrator {
                 p.lock().await.set_stage("Transcribing audio...");
             }
             info!("Step 2b: Extracting audio and transcribing...");
+
+            let validator = UrlValidator::new();
+            let raw_id = validator
+                .extract_video_id_public(&command.youtube_url)
+                .unwrap_or("unknown".to_string());
+            let cache_dir = "/tmp/yt-sl-cache";
 
             let audio_extractor = Arc::new(AudioExtractor::new());
 
@@ -139,8 +169,9 @@ impl SessionOrchestrator {
             let (_audio_event, text_event) = handler
                 .handle(
                     Id::new(),
+                    raw_id,
                     state.video_path.as_ref().unwrap().clone(),
-                    session_dir.clone(),
+                    cache_dir.to_string(), // Use cache dir for audio too
                 )
                 .await?;
 
@@ -433,8 +464,11 @@ impl SessionOrchestrator {
                 p.lock().await.set_stage("Cleaning up...");
             }
             info!("Step 6: Cleaning up temporary resources...");
+            // Don't delete video_path if it's in the cache
             if let Some(video_path) = &state.video_path {
-                let _ = fs::remove_file(video_path);
+                if !video_path.contains("/tmp/yt-sl-cache") {
+                    let _ = fs::remove_file(video_path);
+                }
             }
             if let Some(frames_dir) = &state.frames_dir {
                 let _ = fs::remove_dir_all(frames_dir);

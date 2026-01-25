@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 pub struct ExtractAudioCommand {
     /// The video ID being processed
     pub video_id: Id<YouTubeVideo>,
+    /// The YouTube Video ID string (e.g., "dQw4w9WgXcQ") for caching
+    pub youtube_video_id: String,
     /// Path to the source video file
     pub video_path: String,
     /// Directory where the audio file should be saved

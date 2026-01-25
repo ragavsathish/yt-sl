@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 pub struct DownloadVideoCommand {
     /// The video ID to download
     pub video_id: Id<YouTubeVideo>,
+    /// The YouTube Video ID string (e.g., "dQw4w9WgXcQ") for caching
+    pub youtube_video_id: String,
 }
 
 /// Command to validate a YouTube URL.
@@ -46,8 +48,10 @@ mod tests {
         let uuid = uuid::Uuid::new_v4();
         let cmd = DownloadVideoCommand {
             video_id: Id::<YouTubeVideo>::from_uuid(uuid),
+            youtube_video_id: "dQw4w9WgXcQ".to_string(),
         };
         assert_eq!(cmd.video_id.as_uuid(), uuid);
+        assert_eq!(cmd.youtube_video_id, "dQw4w9WgXcQ");
     }
 
     #[test]
