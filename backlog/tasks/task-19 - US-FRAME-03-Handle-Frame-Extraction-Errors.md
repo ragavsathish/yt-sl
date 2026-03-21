@@ -16,11 +16,11 @@ ordinal: 11000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Corrupt frames are skipped with warning logged
-- [ ] #2 Skipped frames do not affect subsequent frame extraction
-- [ ] #3 Maximum of 10% of frames can be skipped before session fails
-- [ ] #4 Skipped frame count is included in summary report
-- [ ] #5 Frame extraction errors include frame number and timestamp in error message
+- [x] #1 Corrupt frames are skipped with warning logged
+- [x] #2 Skipped frames do not affect subsequent frame extraction
+- [x] #3 Maximum of 10% of frames can be skipped before session fails
+- [x] #4 Skipped frame count is included in summary report
+- [x] #5 Frame extraction errors include frame number and timestamp in error message
 
 ---
 <!-- AC:END -->

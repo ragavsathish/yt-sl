@@ -16,13 +16,13 @@ ordinal: 29000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Frames are extracted starting from the beginning of the video
-- [ ] #2 Frames are extracted at the configured interval (default: 5 seconds)
-- [ ] #3 Frame number and timestamp are recorded for each extracted frame
-- [ ] #4 Frames are saved as PNG images in a temporary directory
-- [ ] #5 Frame extraction progress is reported to the session
-- [ ] #6 Frames are extracted in order from start to end of video
-- [ ] #7 Last frame of video is always extracted regardless of interval
+- [x] #1 Frames are extracted starting from the beginning of the video
+- [x] #2 Frames are extracted at the configured interval (default: 5 seconds)
+- [x] #3 Frame number and timestamp are recorded for each extracted frame
+- [x] #4 Frames are saved as JPEG images in a temporary directory (JPEG chosen for performance)
+- [x] #5 Frame extraction progress is reported to the session
+- [x] #6 Frames are extracted in order from start to end of video
+- [x] #7 Last frame of video is always extracted regardless of interval
 
 ---
 <!-- AC:END -->

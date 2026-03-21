@@ -16,12 +16,12 @@ ordinal: 40000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Output directory is checked for write permissions before processing
-- [ ] #2 Non-existent directories are created if parent exists
-- [ ] #3 Non-existent parent directories result in clear error message
-- [ ] #4 Non-writable directories result in clear error message
-- [ ] #5 Disk space is checked before processing
-- [ ] #6 Insufficient disk space results in clear error message with required space
+- [x] #1 Output directory is checked for write permissions before processing
+- [x] #2 Non-existent directories are created if parent exists
+- [x] #3 Non-existent parent directories result in clear error message
+- [x] #4 Non-writable directories result in clear error message
+- [x] #5 Disk space is checked before processing
+- [x] #6 Insufficient disk space results in clear error message with required space
 
 ---
 <!-- AC:END -->

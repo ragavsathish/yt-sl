@@ -16,11 +16,11 @@ ordinal: 13000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Similarity score is between 0.0 (completely different) and 1.0 (identical)
-- [ ] #2 Similarity calculation is symmetric (similarity(A,B) == similarity(B,A))
-- [ ] #3 Similarity calculation is deterministic
-- [ ] #4 Similarity calculation completes in under 1ms per comparison
-- [ ] #5 Similarity threshold can be adjusted for different use cases
+- [x] #1 Similarity score is between 0.0 (completely different) and 1.0 (identical)
+- [x] #2 Similarity calculation is symmetric (similarity(A,B) == similarity(B,A))
+- [x] #3 Similarity calculation is deterministic
+- [x] #4 Similarity calculation completes in under 1ms per comparison
+- [x] #5 Similarity threshold can be adjusted for different use cases
 
 ---
 <!-- AC:END -->

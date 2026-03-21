@@ -16,12 +16,12 @@ ordinal: 16000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 User can specify one or more OCR languages via command line
-- [ ] #2 Supported languages include: English, Spanish, French, German, Japanese, Chinese, Korean
-- [ ] #3 Language codes are validated against supported languages
-- [ ] #4 OCR uses specified languages in priority order
-- [ ] #5 Default language is English if not specified
-- [ ] #6 Language detection can be enabled to auto-detect slide language
+- [x] #1 User can specify one or more OCR languages via command line (-l flag)
+- [x] #2 Supported languages include: English, Spanish, French, German, Japanese, Chinese, Korean (16 total)
+- [x] #3 Language codes are validated against supported languages
+- [x] #4 OCR uses specified languages in priority order
+- [x] #5 Default language is English if not specified
+- [x] #6 Language detection can be enabled to auto-detect slide language
 
 ---
 <!-- AC:END -->

@@ -103,6 +103,8 @@ async fn test_pipeline_with_llm_integration() {
         }),
         generate_pdf: false,
         pdf_template: None,
+        keep_temp: false,
+        template: None,
     };
 
     // Act

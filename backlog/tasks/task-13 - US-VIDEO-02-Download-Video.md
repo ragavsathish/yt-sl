@@ -16,15 +16,15 @@ ordinal: 28000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Video is downloaded to a temporary directory
-- [ ] #2 Video is downloaded in the highest available quality up to 1080p
-- [ ] #3 Download progress is reported to the session
-- [ ] #4 Video duration is captured after download completes
-- [ ] #5 Video resolution is captured after download completes
-- [ ] #6 Download is retried up to 3 times with exponential backoff on failure
-- [ ] #7 Download fails with clear error message if video is unavailable or private
-- [ ] #8 Download fails with clear error message if video exceeds 4 hours
-- [ ] #9 Download timeout is set to 30 minutes per hour of video duration
+- [x] #1 Video is downloaded to a temporary directory (cache dir /tmp/yt-sl-cache)
+- [x] #2 Video is downloaded in the highest available quality up to 1080p
+- [x] #3 Download progress is reported to the session
+- [x] #4 Video duration is captured after download completes (via metadata fetch)
+- [x] #5 Video resolution is captured after download completes (via metadata fetch)
+- [x] #6 Download is retried up to 3 times with exponential backoff on failure
+- [x] #7 Download fails with clear error message if video is unavailable or private
+- [x] #8 Download fails with clear error message if video exceeds 4 hours (via availability checker)
+- [x] #9 Download timeout is set to 30 minutes per hour of video duration
 
 ---
 <!-- AC:END -->

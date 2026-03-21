@@ -300,17 +300,6 @@ impl DependencyChecker {
         let stdout = String::from_utf8_lossy(output);
 
         match dependency {
-            Dependency::YtDlp => {
-                if let Some(line) = stdout.lines().next() {
-                    if let Some(version) = line.split_whitespace().nth(1) {
-                        Ok(version.to_string())
-                    } else {
-                        Ok(line.to_string())
-                    }
-                } else {
-                    Err("No version output found".to_string())
-                }
-            }
             Dependency::FFmpeg => {
                 for line in stdout.lines() {
                     if line.contains("version") {
@@ -323,18 +312,7 @@ impl DependencyChecker {
                 }
                 Err("No version output found".to_string())
             }
-            Dependency::Tesseract => {
-                if let Some(line) = stdout.lines().next() {
-                    if let Some(version) = line.split_whitespace().nth(1) {
-                        Ok(version.to_string())
-                    } else {
-                        Ok(line.to_string())
-                    }
-                } else {
-                    Err("No version output found".to_string())
-                }
-            }
-            Dependency::Pandoc | Dependency::Typst => {
+            _ => {
                 if let Some(line) = stdout.lines().next() {
                     if let Some(version) = line.split_whitespace().nth(1) {
                         Ok(version.to_string())

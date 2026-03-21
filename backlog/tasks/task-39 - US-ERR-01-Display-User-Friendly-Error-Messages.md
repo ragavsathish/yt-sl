@@ -16,13 +16,13 @@ ordinal: 23000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Error messages are written in plain language
-- [ ] #2 Error messages include the specific problem
-- [ ] #3 Error messages suggest possible solutions
-- [ ] #4 Error messages include relevant context (URL, file path, session ID)
-- [ ] #5 Technical errors are logged separately with full details
-- [ ] #6 Error messages are consistent in format and tone
-- [ ] #7 Error messages are displayed in a readable format
+- [x] #1 Error messages are written in plain language
+- [x] #2 Error messages include the specific problem
+- [x] #3 Error messages suggest possible solutions
+- [x] #4 Error messages include relevant context (URL, file path, session ID)
+- [x] #5 Technical errors are logged separately with full details
+- [x] #6 Error messages are consistent in format and tone
+- [x] #7 Error messages are displayed in a readable format
 
 ---
 <!-- AC:END -->

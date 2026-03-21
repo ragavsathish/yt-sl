@@ -16,14 +16,14 @@ ordinal: 35000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Markdown document is generated in the output directory
-- [ ] #2 Document filename is based on video title and session ID
-- [ ] #3 Each slide is represented as a heading with slide number
-- [ ] #4 Slide images are embedded as Markdown image references
-- [ ] #5 Extracted text is included below each slide image
-- [ ] #6 Timestamp is included if timestamps are enabled
-- [ ] #7 Document includes a title section with video information
-- [ ] #8 Document includes a summary section with extraction statistics
+- [x] #1 Markdown document is generated in the output directory
+- [x] #2 Document filename is based on video title and session ID
+- [x] #3 Each slide is represented as a heading with slide number
+- [x] #4 Slide images are embedded as Markdown image references
+- [x] #5 Extracted text is included below each slide image
+- [x] #6 Timestamp is included if timestamps are enabled
+- [x] #7 Document includes a title section with video information
+- [x] #8 Document includes a summary section with extraction statistics
 
 ---
 <!-- AC:END -->

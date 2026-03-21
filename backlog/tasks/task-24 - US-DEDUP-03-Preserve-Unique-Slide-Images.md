@@ -16,12 +16,12 @@ ordinal: 33000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Unique slide images are saved to the output directory
-- [ ] #2 Slide images are named sequentially (slide-001.png, slide-002.png, etc.)
-- [ ] #3 Slide images are saved in PNG format
-- [ ] #4 Slide images retain original resolution
-- [ ] #5 Slide images include metadata in filename if timestamps are enabled
-- [ ] #6 Slide images are organized in a subdirectory named after the video ID
+- [x] #1 Unique slide images are saved to the output directory
+- [x] #2 Slide images are named sequentially (slide_XXXX.jpg format)
+- [x] #3 Slide images are saved in JPEG format (for performance)
+- [x] #4 Slide images retain original resolution
+- [x] #5 Slide images include metadata in filename if timestamps are enabled
+- [x] #6 Slide images are organized in a subdirectory under session ID
 
 ---
 <!-- AC:END -->

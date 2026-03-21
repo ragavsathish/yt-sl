@@ -8,7 +8,10 @@ use crate::contexts::video::domain::state::VideoDownloaded;
 use crate::shared::domain::{DomainResult, ExtractionError};
 use std::path::Path;
 use tokio::process::Command;
-use tracing::info;
+use tracing::{info, warn};
+
+const MAX_RETRIES: u8 = 3;
+const INITIAL_BACKOFF_SECS: u64 = 2;
 
 /// Video downloader using yt-dlp.
 pub struct VideoDownloader;
@@ -18,7 +21,7 @@ impl VideoDownloader {
         Self
     }
 
-    /// Downloads a video from YouTube.
+    /// Downloads a video from YouTube with retry and exponential backoff.
     pub async fn download_video(
         &self,
         command: DownloadVideoCommand,
@@ -51,44 +54,60 @@ impl VideoDownloader {
             });
         }
 
-        // Execute yt-dlp
-        // -f mp4: preferred format
-        // -o: output path
-        // --extractor-args: use web client to avoid 403 errors
-        let output = Command::new("yt-dlp")
-            .args([
-                "--extractor-args",
-                "youtube:player_client=web",
-                "-f",
-                "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-                "-o",
-                &video_path,
-                url,
-            ])
-            .output()
-            .await
-            .map_err(|e| {
-                ExtractionError::ExternalDependencyUnavailable(format!(
-                    "yt-dlp execution failed: {}",
-                    e
-                ))
-            })?;
+        let mut last_error = String::new();
+        for attempt in 0..=MAX_RETRIES {
+            if attempt > 0 {
+                let backoff = INITIAL_BACKOFF_SECS * 2u64.pow((attempt - 1) as u32);
+                warn!(
+                    "Download attempt {} failed. Retrying in {}s...",
+                    attempt, backoff
+                );
+                tokio::time::sleep(std::time::Duration::from_secs(backoff)).await;
+                // Clean up partial download
+                let _ = std::fs::remove_file(&video_path);
+            }
 
-        if !output.status.success() {
-            return Err(ExtractionError::DownloadFailed(
-                0,
-                String::from_utf8_lossy(&output.stderr).to_string(),
-            ));
+            let output = Command::new("yt-dlp")
+                .args([
+                    "-f",
+                    "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+                    "-o",
+                    &video_path,
+                    url,
+                ])
+                .output()
+                .await
+                .map_err(|e| {
+                    ExtractionError::ExternalDependencyUnavailable(format!(
+                        "yt-dlp execution failed: {}",
+                        e
+                    ))
+                })?;
+
+            if output.status.success() {
+                return Ok(VideoDownloaded {
+                    video_id: command.video_id,
+                    path: video_path,
+                    duration_sec: 0,
+                    width: 1920,
+                    height: 1080,
+                    file_size: 0,
+                });
+            }
+
+            last_error = String::from_utf8_lossy(&output.stderr).to_string();
         }
 
-        Ok(VideoDownloaded {
-            video_id: command.video_id,
-            path: video_path,
-            duration_sec: 0,
-            width: 1920,
-            height: 1080,
-            file_size: 0,
-        })
+        // Clean up partial download on final failure
+        let _ = std::fs::remove_file(&video_path);
+
+        Err(ExtractionError::DownloadFailed(
+            MAX_RETRIES,
+            format!(
+                "Download failed after {} retries. Last error: {}",
+                MAX_RETRIES, last_error
+            ),
+        ))
     }
 }
 

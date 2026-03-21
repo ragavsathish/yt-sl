@@ -1,27 +1,10 @@
-// Hash comparer for perceptual hashes
+use crate::contexts::frame::infrastructure::PerceptualHasher;
+
 pub struct HashComparer;
 
 impl HashComparer {
-    /// Calculates the similarity score between two perceptual hashes (0.0 to 1.0).
-    /// Uses Hamming distance on the hexadecimal representation.
     pub fn calculate_similarity(hash1: &str, hash2: &str) -> f64 {
-        if hash1.is_empty() || hash2.is_empty() || hash1.len() != hash2.len() {
-            return 0.0;
-        }
-
-        let mut differences = 0;
-        for (c1, c2) in hash1.chars().zip(hash2.chars()) {
-            let v1 = c1.to_digit(16).unwrap_or(0);
-            let v2 = c2.to_digit(16).unwrap_or(0);
-            differences += (v1 ^ v2).count_ones();
-        }
-
-        let total_bits = hash1.len() * 4;
-        if total_bits == 0 {
-            return 1.0;
-        }
-
-        1.0 - (differences as f64 / total_bits as f64)
+        PerceptualHasher::compute_similarity(hash1, hash2)
     }
 }
 

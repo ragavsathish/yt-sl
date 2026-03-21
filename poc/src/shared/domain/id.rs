@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::convert::Infallible;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
@@ -33,9 +32,17 @@ impl<T> Id<T> {
 }
 
 impl<T> FromStr for Id<T> {
-    type Err = Infallible;
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Try parsing as UUID first
+        if let Ok(uuid) = Uuid::parse_str(s) {
+            return Ok(Id {
+                uuid,
+                _marker: PhantomData,
+            });
+        }
+        // Fall back to hash-based ID
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         s.hash(&mut hasher);
         let hash = hasher.finish();

@@ -183,14 +183,7 @@ impl AvailabilityChecker {
         let json_output = timeout(
             self.config.timeout,
             Command::new("yt-dlp")
-                .args([
-                    "--extractor-args",
-                    "youtube:player_client=web",
-                    "--dump-json",
-                    "--no-playlist",
-                    "--no-warnings",
-                    url,
-                ])
+                .args(["--dump-json", "--no-playlist", "--no-warnings", url])
                 .output(),
         )
         .await
@@ -213,6 +206,8 @@ impl AvailabilityChecker {
                 || stderr_lower.contains("not found")
             {
                 return Err(ExtractionError::VideoDeleted);
+            } else if stderr_lower.contains("not a bot") || stderr_lower.contains("confirm you") {
+                return Err(ExtractionError::VideoUnavailable(Id::<YouTubeVideo>::new()));
             } else if stderr_lower.contains("age")
                 || stderr_lower.contains("sign in")
                 || stderr_lower.contains("age-gate")

@@ -16,12 +16,12 @@ ordinal: 17000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 OCR confidence threshold is set to 0.5
-- [ ] #2 Text with confidence below threshold is flagged in output
-- [ ] #3 Flagged text includes confidence score in output
-- [ ] #4 Low confidence does not prevent text from being included
-- [ ] #5 Confidence statistics are included in summary report
-- [ ] #6 Confidence threshold is configurable via command line
+- [x] #1 OCR confidence threshold is set to 0.6 (default, configurable via --confidence-threshold)
+- [x] #2 Text with confidence below threshold is flagged in output
+- [x] #3 Flagged text includes confidence score in output
+- [x] #4 Low confidence does not prevent text from being included
+- [x] #5 Confidence statistics are included in summary report
+- [x] #6 Confidence threshold is configurable via command line (-c / --confidence-threshold)
 
 ---
 <!-- AC:END -->

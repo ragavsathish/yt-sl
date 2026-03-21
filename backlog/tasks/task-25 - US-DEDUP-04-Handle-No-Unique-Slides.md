@@ -16,11 +16,11 @@ ordinal: 14000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 If no unique slides are found, session fails with clear error message
-- [ ] #2 Error message indicates possible reasons (video has no slides, threshold too high)
-- [ ] #3 Error message suggests lowering similarity threshold
-- [ ] #4 Temporary files are cleaned up before reporting error
-- [ ] #5 Session state is set to Failed with reason "NoUniqueSlidesFound"
+- [x] #1 If no unique slides are found, session fails with clear error message
+- [x] #2 Error message indicates possible reasons (video has no slides, threshold too high)
+- [x] #3 Error message suggests lowering similarity threshold
+- [x] #4 Temporary files are cleaned up before reporting error
+- [x] #5 Session state is set to Failed with reason "NoUniqueSlidesFound"
 
 ---
 <!-- AC:END -->

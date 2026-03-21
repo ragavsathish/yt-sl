@@ -20,9 +20,9 @@ Optimize the workflow to check for existing video and audio files before initiat
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Verify if video file exists for the given YouTube ID before downloading
-- [ ] #2 Skip yt-dlp execution if valid video file is found
-- [ ] #3 Verify if extracted audio file exists before running extraction command
-- [ ] #4 Skip FFmpeg audio extraction if valid audio file is found
-- [ ] #5 Ensure logging indicates when steps are skipped due to existing files
+- [x] #1 Verify if video file exists for the given YouTube ID before downloading
+- [x] #2 Skip yt-dlp execution if valid video file is found
+- [x] #3 Verify if extracted audio file exists before running extraction command
+- [x] #4 Skip FFmpeg audio extraction if valid audio file is found
+- [x] #5 Ensure logging indicates when steps are skipped due to existing files
 <!-- AC:END -->

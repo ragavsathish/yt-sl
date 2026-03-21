@@ -16,14 +16,14 @@ ordinal: 3000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Progress bar displays current processing stage (Validating, Downloading, Extracting, Processing, Generating)
-- [ ] #2 Progress bar shows percentage complete for each stage
-- [ ] #3 Progress bar displays estimated time remaining
-- [ ] #4 Current operation is displayed with descriptive text (e.g., "Downloading video...", "Extracting frames...")
-- [ ] #5 Number of unique slides found is displayed as they are identified
-- [ ] #6 Total frames processed is displayed
-- [ ] #7 Progress updates occur at least once per second during active processing
-- [ ] #8 Progress bar is cleared upon completion or error
+- [x] #1 Progress bar displays current processing stage (Validating, Downloading, Extracting, Processing, Generating)
+- [x] #2 Progress bar shows percentage complete for each stage
+- [x] #3 Progress bar displays estimated time remaining
+- [x] #4 Current operation is displayed with descriptive text (e.g., "Downloading video...", "Extracting frames...")
+- [x] #5 Number of unique slides found is displayed as they are identified
+- [x] #6 Total frames processed is displayed
+- [x] #7 Progress updates occur at least once per second during active processing
+- [x] #8 Progress bar is cleared upon completion or error
 
 ---
 <!-- AC:END -->

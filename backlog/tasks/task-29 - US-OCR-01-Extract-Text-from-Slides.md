@@ -16,13 +16,13 @@ ordinal: 34000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 OCR is performed on each unique slide image
-- [ ] #2 Extracted text is stored with the slide metadata
-- [ ] #3 OCR confidence score is calculated and stored
-- [ ] #4 OCR language is detected and stored
-- [ ] #5 OCR progress is reported to the session
-- [ ] #6 OCR completes in under 5 seconds per slide
-- [ ] #7 OCR failure for a slide is logged but does not stop processing
+- [x] #1 OCR is performed on each unique slide image
+- [x] #2 Extracted text is stored with the slide metadata
+- [x] #3 OCR confidence score is calculated and stored
+- [x] #4 OCR language is detected and stored
+- [x] #5 OCR progress is reported to the session
+- [x] #6 OCR completes in under 5 seconds per slide
+- [x] #7 OCR failure for a slide is logged but does not stop processing
 
 ---
 <!-- AC:END -->

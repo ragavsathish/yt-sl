@@ -16,13 +16,13 @@ ordinal: 6000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Session state is persisted after each completed step
-- [ ] #2 Session can be resumed from the last successful step
-- [ ] #3 User can provide a session ID to resume an interrupted session
-- [ ] #4 Resumed session continues from the last completed step
-- [ ] #5 Resumed session uses the same configuration as original
-- [ ] #6 Resumed session generates the same output as non-interrupted session
-- [ ] #7 Completed steps are not re-executed when resuming
+- [x] #1 Session state is persisted after each completed step
+- [x] #2 Session can be resumed from the last successful step
+- [x] #3 User can provide a session ID to resume an interrupted session (--resume-session flag)
+- [x] #4 Resumed session continues from the last completed step
+- [x] #5 Resumed session uses the same configuration as original
+- [x] #6 Resumed session generates the same output as non-interrupted session
+- [x] #7 Completed steps are not re-executed when resuming
 
 ---
 <!-- AC:END -->

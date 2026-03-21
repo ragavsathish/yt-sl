@@ -16,13 +16,13 @@ ordinal: 38000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A unique session ID is generated for each extraction request
-- [ ] #2 Session stores the YouTube video ID
-- [ ] #3 Session stores the extraction configuration
-- [ ] #4 Session stores the initial state as "Created"
-- [ ] #5 Session records creation timestamp
-- [ ] #6 Session events are stored in the event store
-- [ ] #7 Session state can be reconstructed from stored events
+- [x] #1 A unique session ID is generated for each extraction request
+- [x] #2 Session stores the YouTube video ID
+- [x] #3 Session stores the extraction configuration
+- [x] #4 Session stores the initial state as "Created"
+- [x] #5 Session records creation timestamp
+- [x] #6 Session events are stored in the event store
+- [x] #7 Session state can be reconstructed from stored events
 
 ---
 <!-- AC:END -->

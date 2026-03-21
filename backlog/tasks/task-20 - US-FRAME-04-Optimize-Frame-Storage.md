@@ -16,11 +16,11 @@ ordinal: 31000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Frames are stored with compression
-- [ ] #2 Temporary frames are deleted as soon as they are no longer needed
-- [ ] #3 Frame filenames include session ID and frame number for easy identification
-- [ ] #4 Frame storage directory is cleaned up after deduplication completes
-- [ ] #5 Maximum disk usage for frames is limited to 10GB
+- [x] #1 Frames are stored with compression
+- [x] #2 Temporary frames are deleted as soon as they are no longer needed
+- [x] #3 Frame filenames include session ID and frame number for easy identification
+- [x] #4 Frame storage directory is cleaned up after deduplication completes
+- [x] #5 Maximum disk usage for frames is limited to 10GB
 
 ---
 <!-- AC:END -->

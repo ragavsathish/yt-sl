@@ -8,6 +8,10 @@ pub struct SlideData {
     pub timestamp: f64,
     pub image_path: String,
     pub text: String,
+    #[serde(default)]
+    pub confidence: f64,
+    #[serde(default)]
+    pub is_low_confidence: bool,
     pub transcription: Option<String>,
     #[serde(default)]
     pub requires_human_review: bool,
@@ -26,6 +30,10 @@ pub struct GenerateDocumentCommand {
     pub include_timeline_diagram: bool,
     pub generate_pdf: bool,
     pub pdf_template: Option<String>,
+    #[serde(default)]
+    pub template: Option<String>,
+    #[serde(default)]
+    pub session_id: Option<String>,
 }
 
 impl Default for GenerateDocumentCommand {
@@ -41,6 +49,8 @@ impl Default for GenerateDocumentCommand {
             include_timeline_diagram: true,
             generate_pdf: false,
             pdf_template: None,
+            template: None,
+            session_id: None,
         }
     }
 }

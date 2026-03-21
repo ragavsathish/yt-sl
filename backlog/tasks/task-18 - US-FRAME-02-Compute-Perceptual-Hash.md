@@ -16,12 +16,12 @@ ordinal: 30000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Perceptual hash is computed using image hashing algorithm
-- [ ] #2 Hash is deterministic (same image always produces same hash)
-- [ ] #3 Hash is resistant to minor image variations (compression artifacts, slight shifts)
-- [ ] #4 Hash is stored with the frame metadata
-- [ ] #5 Hash computation completes in under 100ms per frame
-- [ ] #6 Hash computation failure results in clear error message with frame ID
+- [x] #1 Perceptual hash is computed using image hashing algorithm
+- [x] #2 Hash is deterministic (same image always produces same hash)
+- [x] #3 Hash is resistant to minor image variations (compression artifacts, slight shifts)
+- [x] #4 Hash is stored with the frame metadata
+- [x] #5 Hash computation completes in under 100ms per frame
+- [x] #6 Hash computation failure results in clear error message with frame ID
 
 ---
 <!-- AC:END -->

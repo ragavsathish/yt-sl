@@ -16,13 +16,13 @@ ordinal: 32000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Frames are compared using perceptual hash similarity
-- [ ] #2 Frames with similarity above the threshold are considered duplicates
-- [ ] #3 First occurrence of each unique slide is retained
-- [ ] #4 Subsequent duplicates are discarded
-- [ ] #5 Similarity threshold is configurable (default: 0.85)
-- [ ] #6 Uniqueness check is performed in O(n) time using hash set
-- [ ] #7 Number of unique slides is reported to the session
+- [x] #1 Frames are compared using perceptual hash similarity
+- [x] #2 Frames with similarity above the threshold are considered duplicates
+- [x] #3 First occurrence of each unique slide is retained
+- [x] #4 Subsequent duplicates are discarded
+- [x] #5 Similarity threshold is configurable (default: 0.85)
+- [x] #6 Uniqueness check is performed in O(n) time using hash set
+- [x] #7 Number of unique slides is reported to the session
 
 ---
 <!-- AC:END -->

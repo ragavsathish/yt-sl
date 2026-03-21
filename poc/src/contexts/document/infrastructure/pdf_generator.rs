@@ -121,7 +121,7 @@ impl PdfGenerator {
             .arg("--pdf-engine=typst");
 
         // Handle templates
-        let mut _temp_template_path = None;
+        let mut temp_template_path = None;
         if let Some(template) = template_path {
             info!("Using custom Typst template: {}", template);
             cmd.arg("--template").arg(template);
@@ -131,7 +131,7 @@ impl PdfGenerator {
             fs::write(&temp_file, DEFAULT_TYPST_TEMPLATE)
                 .map_err(|e| ExtractionError::FileSystemError(e.to_string()))?;
             cmd.arg("--template").arg(&temp_file);
-            _temp_template_path = Some(temp_file);
+            temp_template_path = Some(temp_file);
         }
 
         // Ensure images are correctly embedded by setting the resource path
@@ -144,7 +144,7 @@ impl PdfGenerator {
         });
 
         // Cleanup temporary template if we created one
-        if let Some(path) = _temp_template_path {
+        if let Some(path) = temp_template_path {
             let _ = fs::remove_file(path);
         }
 

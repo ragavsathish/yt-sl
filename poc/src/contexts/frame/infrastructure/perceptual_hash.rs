@@ -5,7 +5,7 @@
 //!
 //! Features:
 //! - Compute perceptual hash for each frame
-//! - Use ahash algorithm for efficient similarity comparison
+//! - Compute similarity between hashes using Hamming distance
 //! - Store hash with frame metadata
 //! - Support multiple hash algorithms (average, difference, dhash)
 //! - Provide hash comparison functions
@@ -14,9 +14,7 @@ use crate::contexts::frame::domain::commands::{ComputeHashCommand, HashAlgorithm
 use crate::contexts::frame::domain::events::validate_hash_params;
 use crate::contexts::frame::domain::state::HashComputed;
 use crate::shared::domain::{DomainResult, ExtractionError};
-use ahash::AHasher;
 use image::{ImageBuffer, Luma};
-use std::hash::Hasher;
 use std::time::Instant;
 
 /// Perceptual hash computer.
@@ -180,20 +178,6 @@ impl PerceptualHasher {
 
         1.0 - (differences as f64 / total_bits as f64)
     }
-
-    /// Computes ahash using ahash crate for efficient hashing.
-    pub fn compute_ahash(data: &[u8]) -> String {
-        let mut hasher = AHasher::default();
-        hasher.write(data);
-        let hash = hasher.finish();
-        format!("{:016x}", hash)
-    }
-
-    pub fn compute_combined_hash(&self, img: &ImageBuffer<Luma<u8>, Vec<u8>>) -> String {
-        let avg_hash = self.compute_average_hash(img);
-        let diff_hash = self.compute_difference_hash(img);
-        format!("{}|{}", avg_hash, diff_hash)
-    }
 }
 
 impl Default for PerceptualHasher {
@@ -258,14 +242,6 @@ mod tests {
         let hash2 = "a1b2c3d4e5f0"; // Only last digit differs
         let similarity = PerceptualHasher::compute_similarity(hash1, hash2);
         assert!(similarity > 0.9);
-    }
-
-    #[test]
-    fn test_compute_ahash() {
-        let data = b"test data";
-        let hash = PerceptualHasher::compute_ahash(data);
-        assert!(!hash.is_empty());
-        assert_eq!(hash.len(), 16);
     }
 
     #[test]

@@ -15,7 +15,7 @@ use crate::contexts::frame::domain::commands::{ExtractFramesCommand, FrameFormat
 use crate::contexts::frame::domain::events::{
     create_extracted_event, generate_frame_path, validate_extraction_params,
 };
-use crate::contexts::frame::domain::handlers::handle_extract_frames;
+use crate::contexts::frame::domain::handlers::calculate_total_frames;
 use crate::contexts::frame::domain::state::{FrameExtracted, FramesExtracted};
 use crate::shared::domain::{DomainResult, ExtractionError, Id, VideoFrame};
 use crate::shared::infrastructure::memory::MemoryMonitor;
@@ -69,16 +69,16 @@ impl FrameExtractor {
 
         self.memory_monitor.validate()?;
 
-        let total_frames = handle_extract_frames(command.clone(), duration_sec)?.total_frames;
+        let total_frames = calculate_total_frames(duration_sec, command.interval_secs);
 
         let frames = self
-            .extract_frames_with_ffmpeg(command.clone(), duration_sec, total_frames)
+            .extract_frames_with_ffmpeg(&command, duration_sec, total_frames)
             .await?;
 
         let extracted_event = FramesExtracted {
             video_id: command.video_id,
             total_frames: frames.len() as u32,
-            frames_dir: command.output_dir.clone(),
+            frames_dir: command.output_dir,
             interval_secs: command.interval_secs,
             format: format!("{:?}", command.output_format),
         };
@@ -88,7 +88,7 @@ impl FrameExtractor {
 
     async fn extract_frames_with_ffmpeg(
         &mut self,
-        command: ExtractFramesCommand,
+        command: &ExtractFramesCommand,
         _duration_sec: u64,
         total_frames: u32,
     ) -> DomainResult<Vec<FrameExtracted>> {
@@ -103,13 +103,13 @@ impl FrameExtractor {
         ffmpeg_cmd.arg(&command.video_path);
         ffmpeg_cmd.arg("-vf");
         ffmpeg_cmd.arg(format!("fps=1/{}", command.interval_secs));
+        let qv = if let Some(quality) = command.jpeg_quality {
+            format!("{}", (100 - quality) / 10)
+        } else {
+            "2".to_string()
+        };
         ffmpeg_cmd.arg("-q:v");
-        ffmpeg_cmd.arg("2"); // Good quality
-
-        if let Some(quality) = command.jpeg_quality {
-            ffmpeg_cmd.arg("-q:v");
-            ffmpeg_cmd.arg(format!("{}", (100 - quality) / 10));
-        }
+        ffmpeg_cmd.arg(qv);
 
         let output_pattern = Path::new(&command.output_dir)
             .join(format!("{}_frame_%04d.{}", command.video_id, extension));
@@ -126,7 +126,7 @@ impl FrameExtractor {
             )));
         }
 
-        let video_id = command.video_id;
+        let video_id = &command.video_id;
         for frame_number in 1..=total_frames {
             if self.memory_monitor.check_and_warn() {
                 tracing::warn!("Memory usage approaching threshold during frame extraction");
@@ -135,7 +135,7 @@ impl FrameExtractor {
             let timestamp = ((frame_number - 1) as u64 * command.interval_secs) as f64;
 
             let frame_path =
-                generate_frame_path(&command.output_dir, &video_id, frame_number, extension);
+                generate_frame_path(&command.output_dir, video_id, frame_number, extension);
 
             if Path::new(&frame_path).exists() {
                 let (width, height) = self.get_frame_dimensions(&frame_path)?;
@@ -143,7 +143,7 @@ impl FrameExtractor {
                 let frame_id = Id::<VideoFrame>::new();
                 let frame = create_extracted_event(
                     frame_id,
-                    &video_id,
+                    video_id,
                     frame_number,
                     timestamp,
                     frame_path,

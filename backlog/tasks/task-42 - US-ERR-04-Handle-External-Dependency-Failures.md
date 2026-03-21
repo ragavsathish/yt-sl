@@ -16,12 +16,12 @@ ordinal: 42000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 External dependencies are checked before processing
-- [ ] #2 Missing dependencies result in clear error message with installation instructions
-- [ ] #3 Dependency execution failures are logged with full error output
-- [ ] #4 Dependency failures result in clear error message indicating which dependency failed
-- [ ] #5 User is provided with troubleshooting steps for dependency issues
-- [ ] #6 Dependency versions are logged for debugging
+- [x] #1 External dependencies are checked before processing
+- [x] #2 Missing dependencies result in clear error message with installation instructions
+- [x] #3 Dependency execution failures are logged with full error output
+- [x] #4 Dependency failures result in clear error message indicating which dependency failed
+- [x] #5 User is provided with troubleshooting steps for dependency issues
+- [x] #6 Dependency versions are logged for debugging
 
 ---
 <!-- AC:END -->

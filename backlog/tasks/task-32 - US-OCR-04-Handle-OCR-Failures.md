@@ -16,12 +16,12 @@ ordinal: 18000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 OCR failures are logged with slide ID and error reason
-- [ ] #2 Failed OCR does not prevent other slides from being processed
-- [ ] #3 Failed OCR is indicated in output with placeholder text
-- [ ] #4 Maximum of 20% of slides can fail OCR before session fails
-- [ ] #5 OCR failure count is included in summary report
-- [ ] #6 Common OCR failure reasons are explained to user
+- [x] #1 OCR failures are logged with slide ID and error reason
+- [x] #2 Failed OCR does not prevent other slides from being processed
+- [x] #3 Failed OCR is indicated in output with placeholder text "[OCR failed for this slide]"
+- [x] #4 Maximum of 20% of slides can fail OCR before session fails
+- [x] #5 OCR failure count is included in summary report (via OcrStats)
+- [x] #6 Common OCR failure reasons are explained to user
 
 ---
 <!-- AC:END -->

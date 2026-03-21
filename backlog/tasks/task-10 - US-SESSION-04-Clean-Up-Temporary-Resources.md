@@ -16,13 +16,13 @@ ordinal: 27000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Downloaded video file is deleted after frame extraction completes
-- [ ] #2 Temporary frame files are deleted after deduplication completes
-- [ ] #3 Only unique slide images are retained in output directory
-- [ ] #4 Cleanup occurs even if session fails
-- [ ] #5 Cleanup failures are logged but do not cause session to fail
-- [ ] #6 User can opt to keep temporary files with a flag
-- [ ] #7 Cleanup is performed in reverse order of resource creation
+- [x] #1 Downloaded video file is deleted after frame extraction completes (cached videos preserved)
+- [x] #2 Temporary frame files are deleted after deduplication completes
+- [x] #3 Only unique slide images are retained in output directory
+- [x] #4 Cleanup occurs even if session fails
+- [x] #5 Cleanup failures are logged but do not cause session to fail
+- [x] #6 User can opt to keep temporary files with a flag (--keep-temp)
+- [x] #7 Cleanup is performed in reverse order of resource creation
 
 ---
 <!-- AC:END -->

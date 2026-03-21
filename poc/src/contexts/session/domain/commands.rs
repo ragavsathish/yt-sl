@@ -14,6 +14,10 @@ pub struct StartExtractionSessionCommand {
     pub llm_config: Option<crate::shared::domain::config::LlmConfig>,
     pub generate_pdf: bool,
     pub pdf_template: Option<String>,
+    #[serde(default)]
+    pub keep_temp: bool,
+    #[serde(default)]
+    pub template: Option<String>,
 }
 
 impl Default for StartExtractionSessionCommand {
@@ -29,6 +33,8 @@ impl Default for StartExtractionSessionCommand {
             llm_config: None,
             generate_pdf: false,
             pdf_template: None,
+            keep_temp: false,
+            template: None,
         }
     }
 }

@@ -16,13 +16,13 @@ ordinal: 8000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Video availability is checked before download begins
-- [ ] #2 Private videos are rejected with clear error message
-- [ ] #3 Age-restricted videos are rejected with clear error message
-- [ ] #4 Deleted videos are rejected with clear error message
-- [ ] #5 Region-locked videos are rejected with clear error message
-- [ ] #6 Video metadata (title, duration, resolution) is retrieved if available
-- [ ] #7 Availability check completes in under 5 seconds
+- [x] #1 Video availability is checked before download begins
+- [x] #2 Private videos are rejected with clear error message
+- [x] #3 Age-restricted videos are rejected with clear error message
+- [x] #4 Deleted videos are rejected with clear error message
+- [x] #5 Region-locked videos are rejected with clear error message
+- [x] #6 Video metadata (title, duration, resolution) is retrieved if available
+- [x] #7 Availability check completes in under 5 seconds
 
 ---
 <!-- AC:END -->

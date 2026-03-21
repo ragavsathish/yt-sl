@@ -16,12 +16,12 @@ ordinal: 9000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Network timeout is set to 60 seconds per connection attempt
-- [ ] #2 Timeout triggers retry with exponential backoff
-- [ ] #3 Maximum of 3 retry attempts are made
-- [ ] #4 All retries exhausted results in clear error message with timeout duration
-- [ ] #5 Partial downloads are cleaned up before retry
-- [ ] #6 Timeout duration is configurable via environment variable
+- [x] #1 Network timeout is set to 60 seconds per connection attempt
+- [x] #2 Timeout triggers retry with exponential backoff (2s, 4s, 8s)
+- [x] #3 Maximum of 3 retry attempts are made
+- [x] #4 All retries exhausted results in clear error message with timeout duration
+- [x] #5 Partial downloads are cleaned up before retry
+- [x] #6 Timeout duration is configurable via environment variable
 
 ---
 <!-- AC:END -->

@@ -16,12 +16,12 @@ ordinal: 20000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Text is formatted as Markdown blockquotes under each slide
-- [ ] #2 Low confidence text is marked with a warning indicator
-- [ ] #3 Text is cleaned of common OCR artifacts (extra whitespace, random characters)
-- [ ] #4 Text preserves paragraph structure where detected
-- [ ] #5 Text preserves list structure where detected
-- [ ] #6 Empty text extractions are indicated with placeholder
+- [x] #1 Text is formatted as Markdown blockquotes under each slide
+- [x] #2 Low confidence text is marked with a warning indicator (⚠️ Low confidence OCR)
+- [x] #3 Text is cleaned of common OCR artifacts (extra whitespace, random characters)
+- [x] #4 Text preserves paragraph structure where detected
+- [x] #5 Text preserves list structure where detected
+- [x] #6 Empty text extractions are indicated with placeholder (*No text detected.*)
 
 ---
 <!-- AC:END -->

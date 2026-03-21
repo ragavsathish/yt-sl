@@ -132,6 +132,39 @@ pub struct CliArgs {
         help = "Custom Typst template for PDF generation"
     )]
     pub pdf_template: Option<String>,
+
+    /// Resume a previous session by ID
+    #[arg(
+        long = "resume-session",
+        value_name = "SESSION_ID",
+        help = "Resume a previous extraction session by its ID"
+    )]
+    pub resume_session: Option<String>,
+
+    /// Keep temporary files after processing
+    #[arg(
+        long = "keep-temp",
+        help = "Keep temporary files (frames, etc.) after processing"
+    )]
+    pub keep_temp: bool,
+
+    /// OCR confidence threshold
+    #[arg(
+        short = 'c',
+        long = "confidence-threshold",
+        value_name = "THRESHOLD",
+        default_value = "0.6",
+        help = "OCR confidence threshold (default: 0.6, range: 0.0 - 1.0)"
+    )]
+    pub confidence_threshold: f64,
+
+    /// Custom Tera template file for Markdown generation
+    #[arg(
+        long = "template",
+        value_name = "FILE",
+        help = "Custom Tera template file for Markdown report generation"
+    )]
+    pub template: Option<String>,
 }
 
 impl CliArgs {
@@ -276,6 +309,10 @@ impl Default for CliArgs {
             llm_verify: false,
             generate_pdf: false,
             pdf_template: None,
+            resume_session: None,
+            keep_temp: false,
+            confidence_threshold: 0.6,
+            template: None,
         }
     }
 }
@@ -449,12 +486,7 @@ mod tests {
             timestamps: true,
             memory_threshold_mb: 600,
             output_dir: temp_dir.clone(),
-            llm_api_key: None,
-            llm_api_base: "http://localhost:1234/v1".to_string(),
-            llm_model: "qwen/qwen3-vl-8b".to_string(),
-            llm_verify: false,
-            generate_pdf: false,
-            pdf_template: None,
+            ..Default::default()
         };
 
         let config = args.to_config().unwrap();

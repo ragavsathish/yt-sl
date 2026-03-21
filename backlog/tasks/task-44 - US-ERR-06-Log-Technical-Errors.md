@@ -16,12 +16,12 @@ ordinal: 25000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Technical errors are logged with full stack traces
-- [ ] #2 Logs include session ID, timestamp, and error context
-- [ ] #3 Logs are written to a file in the output directory
-- [ ] #4 Log level is configurable (error, warn, info, debug, trace)
-- [ ] #5 Log rotation is implemented to prevent excessive log files
-- [ ] #6 Logs include system information (OS, version, dependencies)
+- [x] #1 Technical errors are logged with full stack traces
+- [x] #2 Logs include session ID, timestamp, and error context
+- [x] #3 Logs are written to a file in the output directory (output/logs/)
+- [x] #4 Log level is configurable (error, warn, info, debug, trace) via EnvFilter
+- [x] #5 Log rotation is implemented to prevent excessive log files (daily rotation)
+- [x] #6 Logs include system information (OS, version, dependencies)
 
 ---
 <!-- AC:END -->

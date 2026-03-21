@@ -16,15 +16,15 @@ ordinal: 4000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Summary displays total unique slides extracted
-- [ ] #2 Summary displays total frames processed
-- [ ] #3 Summary displays total processing duration
-- [ ] #4 Summary displays path to generated Markdown file
-- [ ] #5 Summary displays path to extracted slide images directory
-- [ ] #6 Summary displays OCR confidence statistics (average, min, max)
-- [ ] #7 Summary displays any warnings or issues encountered
-- [ ] #8 Summary is displayed in a clean, readable format
-- [ ] #9 Summary includes session ID for reference
+- [x] #1 Summary displays total unique slides extracted
+- [x] #2 Summary displays total frames processed
+- [x] #3 Summary displays total processing duration
+- [x] #4 Summary displays path to generated Markdown file
+- [x] #5 Summary displays path to extracted slide images directory
+- [x] #6 Summary displays OCR confidence statistics (average, min, max)
+- [x] #7 Summary displays any warnings or issues encountered
+- [x] #8 Summary is displayed in a clean, readable format
+- [x] #9 Summary includes session ID for reference
 
 ---
 <!-- AC:END -->

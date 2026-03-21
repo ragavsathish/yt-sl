@@ -16,12 +16,12 @@ ordinal: 41000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Memory usage is monitored during processing
-- [ ] #2 Memory threshold is set to 500MB
-- [ ] #3 Approaching memory threshold triggers warning
-- [ ] #4 Exceeding memory threshold results in graceful failure
-- [ ] #5 Error message indicates memory requirement and available memory
-- [ ] #6 User is suggested to process shorter videos or reduce frame interval
+- [x] #1 Memory usage is monitored during processing
+- [x] #2 Memory threshold is set to 500MB
+- [x] #3 Approaching memory threshold triggers warning
+- [x] #4 Exceeding memory threshold results in graceful failure
+- [x] #5 Error message indicates memory requirement and available memory
+- [x] #6 User is suggested to process shorter videos or reduce frame interval
 
 ---
 <!-- AC:END -->

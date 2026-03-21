@@ -16,10 +16,10 @@ ordinal: 21000
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 User can provide a custom Tera template file
-- [ ] #2 Default template is used if no custom template is provided
-- [ ] #3 Template has access to all session, video, and slide data
-- [ ] #4 Template syntax errors are reported with clear error messages
+- [x] #1 User can provide a custom Tera template file (--template flag)
+- [x] #2 Default template is used if no custom template is provided
+- [x] #3 Template has access to all session, video, and slide data
+- [x] #4 Template syntax errors are reported with clear error messages
 - [ ] #5 Template variables are documented in user guide
 - [ ] #6 Example custom templates are provided
 

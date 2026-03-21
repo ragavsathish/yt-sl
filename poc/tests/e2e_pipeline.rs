@@ -32,6 +32,8 @@ async fn test_full_pipeline_with_specific_video() {
         llm_config: None,
         generate_pdf: true,
         pdf_template: None,
+        keep_temp: false,
+        template: None,
     };
 
     // Act
