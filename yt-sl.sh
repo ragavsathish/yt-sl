@@ -69,10 +69,10 @@ fi
 
 # Transcribe audio (optional, skip if whisper not available)
 TRANSCRIPT_PATH="$VIDEOS_DIR/$VIDEO_ID.json"
-TRANSCRIPT_FLAG=""
+TRANSCRIPT_ARGS=()
 if [[ -f "$TRANSCRIPT_PATH" ]]; then
   echo "[4/5] Transcript cached: $TRANSCRIPT_PATH"
-  TRANSCRIPT_FLAG="--transcript $TRANSCRIPT_PATH"
+  TRANSCRIPT_ARGS=("--transcript" "$TRANSCRIPT_PATH")
 else
   AUDIO_PATH="$VIDEOS_DIR/$VIDEO_ID.wav"
   if [[ ! -f "$AUDIO_PATH" ]]; then
@@ -88,9 +88,14 @@ else
       -F file=@"$AUDIO_PATH" \
       -F model=whisper-1 \
       -F response_format=verbose_json \
-      -o "$TRANSCRIPT_PATH" 2>/dev/null && \
-      TRANSCRIPT_FLAG="--transcript $TRANSCRIPT_PATH" || \
+      -o "$TRANSCRIPT_PATH" 2>/dev/null
+    # Validate response has "text" field (not an error)
+    if [[ -f "$TRANSCRIPT_PATH" ]] && grep -q '"text"' "$TRANSCRIPT_PATH" 2>/dev/null; then
+      TRANSCRIPT_ARGS=("--transcript" "$TRANSCRIPT_PATH")
+    else
+      rm -f "$TRANSCRIPT_PATH"
       echo "  whisper failed, skipping transcription"
+    fi
   else
     echo "[4/5] No whisper API available, skipping transcription"
   fi
@@ -103,5 +108,5 @@ yt-sl --frames "$FRAMES_DIR" \
   --title "$TITLE" \
   --url "$URL" \
   --interval "$INTERVAL" \
-  $TRANSCRIPT_FLAG \
+  "${TRANSCRIPT_ARGS[@]+"${TRANSCRIPT_ARGS[@]}"}" \
   "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
