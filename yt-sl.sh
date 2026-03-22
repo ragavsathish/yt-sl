@@ -101,12 +101,18 @@ else
   fi
 fi
 
+# Output per video ID
+VIDEO_OUTPUT="$OUTPUT/$VIDEO_ID"
+
 # Run yt-sl
 echo "[5/5] Extracting slides..."
 yt-sl --frames "$FRAMES_DIR" \
-  --output "$OUTPUT" \
+  --output "$VIDEO_OUTPUT" \
   --title "$TITLE" \
   --url "$URL" \
   --interval "$INTERVAL" \
   "${TRANSCRIPT_ARGS[@]+"${TRANSCRIPT_ARGS[@]}"}" \
   "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
+
+echo ""
+echo "Done: $VIDEO_OUTPUT/report.md"
