@@ -307,12 +307,12 @@ fn dedup_frames(paths: &[PathBuf], threshold: f64) -> Vec<PathBuf> {
 const VISION_PROMPT: &str = "\
 You are analyzing a frame extracted from a video recording of a presentation.
 
-If this image shows a presentation slide (containing text, diagrams, charts, or bullet points), \
-extract ALL visible text from the slide exactly as written, preserving structure with line breaks. \
-Respond with the extracted text only, no preamble.
+If a presentation slide is visible ANYWHERE in this image — even if a speaker, audience, \
+or stage is also visible — extract ALL visible text from the slide exactly as written, \
+preserving structure with line breaks. Respond with the extracted text only, no preamble.
 
-If this image does NOT show a presentation slide (e.g., it shows a speaker, audience, webcam view, \
-or transition screen), respond with exactly: NOT_SLIDE";
+Only respond NOT_SLIDE if there is NO slide content visible at all (e.g., only a speaker \
+with no slide behind them, only the audience, or a blank/transition screen).";
 
 fn resize_image(path: &Path) -> R<Vec<u8>> {
     let img = image::open(path)?;
