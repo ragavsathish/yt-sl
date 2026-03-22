@@ -289,13 +289,17 @@ fn dedup_frames(paths: &[PathBuf], threshold: f64) -> Vec<PathBuf> {
         return vec![];
     }
     let mut unique = vec![paths[0].clone()];
-    let mut last_hash = avg_hash(&paths[0]).unwrap_or(0);
+    let mut accepted_hashes = vec![avg_hash(&paths[0]).unwrap_or(0)];
 
     for path in &paths[1..] {
         if let Ok(hash) = avg_hash(path) {
-            if hamming_similarity(last_hash, hash) < threshold {
+            // Compare against ALL accepted frames, not just the last one
+            let is_duplicate = accepted_hashes
+                .iter()
+                .any(|&h| hamming_similarity(h, hash) >= threshold);
+            if !is_duplicate {
                 unique.push(path.clone());
-                last_hash = hash;
+                accepted_hashes.push(hash);
             }
         }
     }
