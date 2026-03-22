@@ -27,8 +27,11 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Get video ID
-VIDEO_ID=$(yt-dlp --print id "$URL" 2>/dev/null || echo "")
+# Get video ID and title
+VIDEO_INFO=$(yt-dlp --print id --print title "$URL" 2>/dev/null || echo "")
+VIDEO_ID=$(echo "$VIDEO_INFO" | head -1)
+VIDEO_TITLE=$(echo "$VIDEO_INFO" | tail -1)
+
 if [[ -z "$VIDEO_ID" ]]; then
   # Fallback: extract from URL
   VIDEO_ID=$(echo "$URL" | grep -oP '(?:v=|youtu\.be/)([a-zA-Z0-9_-]+)' | head -1 | sed 's/v=//;s/youtu\.be\///')
@@ -39,7 +42,17 @@ if [[ -z "$VIDEO_ID" ]]; then
   exit 1
 fi
 
-echo "[1/5] Video ID: $VIDEO_ID"
+# Use video title for output dir name, fallback to --title or ID
+if [[ "$TITLE" == "Untitled" && -n "$VIDEO_TITLE" ]]; then
+  TITLE="$VIDEO_TITLE"
+fi
+# Sanitize title for directory name: lowercase, replace spaces/special chars with hyphens
+OUTPUT_NAME=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
+if [[ -z "$OUTPUT_NAME" ]]; then
+  OUTPUT_NAME="$VIDEO_ID"
+fi
+
+echo "[1/5] Video: $TITLE ($VIDEO_ID)"
 
 VIDEOS_DIR="$CACHE/videos"
 FRAMES_DIR="$CACHE/frames/$VIDEO_ID"
@@ -101,8 +114,8 @@ else
   fi
 fi
 
-# Output per video ID
-VIDEO_OUTPUT="$OUTPUT/$VIDEO_ID"
+# Output with meaningful name
+VIDEO_OUTPUT="$OUTPUT/$OUTPUT_NAME"
 
 # Run yt-sl
 echo "[5/5] Extracting slides..."
