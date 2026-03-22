@@ -1,0 +1,13 @@
+## Video registry for yt-sl
+# Run all: for url in $(grep 'url:' videos.yaml | awk '{print $2}'); do ./yt-sl.sh "$url"; done
+
+videos:
+  - id: g0047beVND4
+    url: https://youtu.be/g0047beVND4
+    title: "Upskilling your Team in DDD"
+    tags: [ddd, domain-driven-design, training]
+
+  - id: cvGvmd29Vkg
+    url: https://youtu.be/cvGvmd29Vkg
+    title: "Functional Walkthrough of NHCX"
+    tags: [nhcx, health-claims, walkthrough]
