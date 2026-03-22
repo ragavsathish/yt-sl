@@ -414,7 +414,18 @@ fn save_training_data(labels: &[(PathBuf, String)]) {
     }
 
     if count > 0 {
-        eprintln!("  training: +{} labels saved to {}", count, path.display());
+        // Count total labels collected so far
+        let total = std::fs::read_to_string(&path)
+            .map(|s| s.lines().count())
+            .unwrap_or(0);
+
+        eprintln!("  training: +{} labels saved (total: {})", count, total);
+
+        if total < 500 {
+            eprintln!("  -> collect ~{} more labels before training", 500 - total);
+        } else {
+            eprintln!("  -> ready to train! run: oumi train -c classifier/src/train.yaml");
+        }
     }
 }
 
