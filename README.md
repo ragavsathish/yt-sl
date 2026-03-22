@@ -6,12 +6,24 @@ A minimal Rust CLI that takes a directory of video frames, deduplicates them via
 
 Does **not** call yt-dlp or ffmpeg — you handle extraction yourself, then pipe the frames in.
 
+## Install
+
+```bash
+brew tap ragavsathish/yt-sl
+brew install yt-sl
+```
+
+Or from source:
+
+```bash
+cargo install --path .
+```
+
 ## Prerequisites
 
-1. **Rust** — [Install](https://rustup.rs/)
-2. **yt-dlp** — `brew install yt-dlp`
-3. **ffmpeg** — `brew install ffmpeg`
-4. **Local vision model** — [LM Studio](https://lmstudio.ai/) with `qwen/qwen3-vl-8b` or similar
+1. **yt-dlp** — `brew install yt-dlp`
+2. **ffmpeg** — `brew install ffmpeg`
+3. **Local vision model** — [LM Studio](https://lmstudio.ai/) with `qwen/qwen3-vl-8b` or similar
 
 ## Usage
 
@@ -29,7 +41,7 @@ curl http://localhost:1234/v1/audio/transcriptions \
   -F response_format=verbose_json > transcript.json
 
 # 4. Extract slides
-cargo run -- --frames frames/ --output ./output --title "My Talk" --transcript transcript.json
+yt-sl --frames frames/ --output ./output --title "My Talk" --transcript transcript.json
 ```
 
 ## Options
