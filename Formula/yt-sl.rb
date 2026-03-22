@@ -13,6 +13,14 @@ class YtSl < Formula
     system "cargo", "install", *std_cargo_args
   end
 
+  def caveats
+    <<~EOS
+      yt-sl requires a local OpenAI-compatible vision model for OCR.
+      Install LM Studio (https://lmstudio.ai/) and load a vision model
+      like qwen/qwen3-vl-8b, then start the local server on port 1234.
+    EOS
+  end
+
   test do
     assert_match "yt-sl", shell_output("#{bin}/yt-sl --help")
   end
