@@ -2,12 +2,14 @@ use base64::{engine::general_purpose, Engine as _};
 use clap::Parser;
 use image::imageops;
 use serde::{Deserialize, Serialize};
-use std::io::Cursor;
+use std::io::{Cursor, Write};
 use std::path::{Path, PathBuf};
 use tokio::sync::Semaphore;
 
 const HASH_SIZE: u32 = 8;
 const MAX_IMAGE_DIM: u32 = 1024;
+const TRAINING_PROMPT: &str =
+    "Is this image a presentation slide? Answer with exactly one word: SLIDE or NOT_SLIDE.";
 
 type R<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -201,11 +203,20 @@ async fn main() -> R<()> {
             match result {
                 Ok(Some(text)) => {
                     let _ = std::fs::copy(&path, &dest);
-                    Some((i, timestamp, dest, text))
+                    // label: SLIDE (with OCR text)
+                    Some((i, timestamp, dest, text, path, "SLIDE".to_string()))
                 }
                 Ok(None) => {
                     eprintln!("    -> NOT_SLIDE");
-                    None
+                    // label: NOT_SLIDE (still record for training)
+                    Some((
+                        i,
+                        timestamp,
+                        PathBuf::new(),
+                        String::new(),
+                        path,
+                        "NOT_SLIDE".to_string(),
+                    ))
                 }
                 Err(e) => {
                     eprintln!("    -> error: {}", e);
@@ -216,19 +227,26 @@ async fn main() -> R<()> {
     }
 
     let mut slides: Vec<SlideData> = Vec::new();
+    let mut training_labels: Vec<(PathBuf, String)> = Vec::new();
     for handle in handles {
-        if let Some((idx, ts, path, text)) = handle.await? {
-            slides.push(SlideData {
-                index: idx + 1,
-                timestamp: ts,
-                image_path: path,
-                text,
-                transcript: String::new(),
-            });
+        if let Some((idx, ts, dest, text, src, label)) = handle.await? {
+            training_labels.push((src, label.clone()));
+            if label == "SLIDE" {
+                slides.push(SlideData {
+                    index: idx + 1,
+                    timestamp: ts,
+                    image_path: dest,
+                    text,
+                    transcript: String::new(),
+                });
+            }
         }
     }
     slides.sort_by(|a, b| a.index.cmp(&b.index));
     eprintln!("[3/4] OCR done: {} slides extracted", slides.len());
+
+    // Save training data in background
+    save_training_data(&training_labels);
 
     // Assign transcript segments to slides
     assign_segments(&mut slides, &segments, args.interval as f64);
@@ -357,6 +375,46 @@ async fn vision_ocr(
         Ok(None)
     } else {
         Ok(Some(content))
+    }
+}
+
+// ── Training data collection ────────────────────────────────────────────
+
+fn save_training_data(labels: &[(PathBuf, String)]) {
+    let dir = dirs::data_local_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("yt-sl")
+        .join("training");
+
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+
+    let path = dir.join("labels.jsonl");
+    let mut file = match std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+    {
+        Ok(f) => f,
+        Err(_) => return,
+    };
+
+    let mut count = 0;
+    for (image_path, label) in labels {
+        let abs = std::fs::canonicalize(image_path).unwrap_or_else(|_| image_path.clone());
+        let entry = serde_json::json!({
+            "input": TRAINING_PROMPT,
+            "output": label,
+            "image": abs.to_str().unwrap_or("")
+        });
+        if writeln!(file, "{}", entry).is_ok() {
+            count += 1;
+        }
+    }
+
+    if count > 0 {
+        eprintln!("  training: +{} labels saved to {}", count, path.display());
     }
 }
 

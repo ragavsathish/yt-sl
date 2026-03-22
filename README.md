@@ -66,6 +66,25 @@ Options:
 1. **Dedup** — Computes average perceptual hash (8x8 grayscale) for each frame, keeps only frames that differ beyond the similarity threshold
 2. **Classify + OCR** — Sends each unique frame to a vision LLM with a single prompt that both classifies (slide vs not-slide) and extracts text
 3. **Report** — Generates a markdown file with slide images, extracted text, and matched transcript segments
+4. **Training data** — Every classification is saved to `~/.local/share/yt-sl/training/labels.jsonl` for fine-tuning a local classifier
+
+## Training your own classifier
+
+Every time you run `yt-sl`, Qwen-VL labels are automatically collected. After processing several videos, use them to fine-tune a lightweight model that runs without any API:
+
+```bash
+# Check how much data you've collected
+wc -l ~/Library/Application\ Support/yt-sl/training/labels.jsonl
+
+# Fine-tune SmolVLM-256M using Oumi
+pip install -r classifier/src/requirements.txt
+oumi train -c classifier/src/train.yaml
+
+# Test the trained model
+python classifier/src/infer.py --frames-dir frames/ --model output/slide-classifier/
+```
+
+See `classifier/program.md` for the full workflow.
 
 ## License
 
