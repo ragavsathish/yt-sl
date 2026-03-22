@@ -1,0 +1,107 @@
+#!/bin/bash
+# yt-sl: Extract slides from a YouTube video using vision LLMs
+#
+# Usage:
+#   ./yt-sl.sh https://youtu.be/g0047beVND4
+#   ./yt-sl.sh https://youtu.be/g0047beVND4 --interval 3
+#   ./yt-sl.sh https://youtu.be/g0047beVND4 --title "My Talk"
+
+set -euo pipefail
+
+URL="${1:?Usage: yt-sl.sh <youtube-url> [--interval N] [--title TITLE] [extra yt-sl flags...]}"
+shift
+
+CACHE="${HOME}/Library/Application Support/yt-sl/cache"
+OUTPUT="./output"
+INTERVAL=5
+TITLE="Untitled"
+EXTRA_ARGS=()
+
+# Parse optional args
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --interval|-i) INTERVAL="$2"; shift 2 ;;
+    --title) TITLE="$2"; shift 2 ;;
+    --output|-o) OUTPUT="$2"; shift 2 ;;
+    *) EXTRA_ARGS+=("$1"); shift ;;
+  esac
+done
+
+# Get video ID
+VIDEO_ID=$(yt-dlp --print id "$URL" 2>/dev/null || echo "")
+if [[ -z "$VIDEO_ID" ]]; then
+  # Fallback: extract from URL
+  VIDEO_ID=$(echo "$URL" | grep -oP '(?:v=|youtu\.be/)([a-zA-Z0-9_-]+)' | head -1 | sed 's/v=//;s/youtu\.be\///')
+fi
+
+if [[ -z "$VIDEO_ID" ]]; then
+  echo "error: could not extract video ID from $URL" >&2
+  exit 1
+fi
+
+echo "[1/5] Video ID: $VIDEO_ID"
+
+VIDEOS_DIR="$CACHE/videos"
+FRAMES_DIR="$CACHE/frames/$VIDEO_ID"
+mkdir -p "$VIDEOS_DIR" "$FRAMES_DIR"
+
+# Download video (cached)
+VIDEO_PATH="$VIDEOS_DIR/$VIDEO_ID.mp4"
+if [[ -f "$VIDEO_PATH" ]]; then
+  echo "[2/5] Video cached: $VIDEO_PATH"
+else
+  echo "[2/5] Downloading video..."
+  yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" \
+    -o "$VIDEO_PATH" "$URL"
+fi
+
+# Extract frames (skip if already done)
+FRAME_COUNT=$(find "$FRAMES_DIR" -name "*.jpg" 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$FRAME_COUNT" -gt 0 ]]; then
+  echo "[3/5] Frames cached: $FRAME_COUNT frames in $FRAMES_DIR"
+else
+  echo "[3/5] Extracting frames (interval: ${INTERVAL}s)..."
+  ffmpeg -i "$VIDEO_PATH" -vf "fps=1/$INTERVAL" -q:v 2 \
+    "$FRAMES_DIR/frame_%04d.jpg" 2>/dev/null
+  FRAME_COUNT=$(find "$FRAMES_DIR" -name "*.jpg" | wc -l | tr -d ' ')
+  echo "  extracted $FRAME_COUNT frames"
+fi
+
+# Transcribe audio (optional, skip if whisper not available)
+TRANSCRIPT_PATH="$VIDEOS_DIR/$VIDEO_ID.json"
+TRANSCRIPT_FLAG=""
+if [[ -f "$TRANSCRIPT_PATH" ]]; then
+  echo "[4/5] Transcript cached: $TRANSCRIPT_PATH"
+  TRANSCRIPT_FLAG="--transcript $TRANSCRIPT_PATH"
+else
+  AUDIO_PATH="$VIDEOS_DIR/$VIDEO_ID.wav"
+  if [[ ! -f "$AUDIO_PATH" ]]; then
+    echo "[4/5] Extracting audio..."
+    ffmpeg -i "$VIDEO_PATH" -vn -acodec pcm_s16le -ar 16000 -ac 1 -y \
+      "$AUDIO_PATH" 2>/dev/null
+  fi
+
+  # Try whisper API
+  if curl -s --max-time 5 http://localhost:1234/v1/models >/dev/null 2>&1; then
+    echo "[4/5] Transcribing audio..."
+    curl -s http://localhost:1234/v1/audio/transcriptions \
+      -F file=@"$AUDIO_PATH" \
+      -F model=whisper-1 \
+      -F response_format=verbose_json \
+      -o "$TRANSCRIPT_PATH" 2>/dev/null && \
+      TRANSCRIPT_FLAG="--transcript $TRANSCRIPT_PATH" || \
+      echo "  whisper failed, skipping transcription"
+  else
+    echo "[4/5] No whisper API available, skipping transcription"
+  fi
+fi
+
+# Run yt-sl
+echo "[5/5] Extracting slides..."
+yt-sl --frames "$FRAMES_DIR" \
+  --output "$OUTPUT" \
+  --title "$TITLE" \
+  --url "$URL" \
+  --interval "$INTERVAL" \
+  $TRANSCRIPT_FLAG \
+  "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"

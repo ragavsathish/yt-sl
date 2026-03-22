@@ -11,6 +11,7 @@ class YtSl < Formula
 
   def install
     system "cargo", "install", *std_cargo_args
+    bin.install "yt-sl.sh"
   end
 
   def caveats
