@@ -28,20 +28,38 @@ cargo install --path .
 ## Usage
 
 ```bash
-# 1. Download video
-yt-dlp -f best -o video.mp4 "https://youtube.com/watch?v=..."
+CACHE=~/Library/Application\ Support/yt-sl/cache
+VIDEO_ID="dQw4w9WgXcQ"
+
+# 1. Download video (cached, survives reboots)
+mkdir -p "$CACHE/videos" "$CACHE/frames/$VIDEO_ID"
+yt-dlp -f best -o "$CACHE/videos/$VIDEO_ID.mp4" "https://youtube.com/watch?v=$VIDEO_ID"
 
 # 2. Extract frames
-ffmpeg -i video.mp4 -vf fps=1/5 -q:v 2 frames/frame_%04d.jpg
+ffmpeg -i "$CACHE/videos/$VIDEO_ID.mp4" -vf fps=1/5 -q:v 2 "$CACHE/frames/$VIDEO_ID/frame_%04d.jpg"
 
 # 3. (Optional) Transcribe audio
-ffmpeg -i video.mp4 -vn -acodec pcm_s16le -ar 16000 -ac 1 audio.wav
+ffmpeg -i "$CACHE/videos/$VIDEO_ID.mp4" -vn -acodec pcm_s16le -ar 16000 -ac 1 "$CACHE/videos/$VIDEO_ID.wav"
 curl http://localhost:1234/v1/audio/transcriptions \
-  -F file=@audio.wav -F model=whisper-1 \
-  -F response_format=verbose_json > transcript.json
+  -F file=@"$CACHE/videos/$VIDEO_ID.wav" -F model=whisper-1 \
+  -F response_format=verbose_json > "$CACHE/videos/$VIDEO_ID.json"
 
 # 4. Extract slides
-yt-sl --frames frames/ --output ./output --title "My Talk" --transcript transcript.json
+yt-sl --frames "$CACHE/frames/$VIDEO_ID" --output ./output --title "My Talk" \
+  --transcript "$CACHE/videos/$VIDEO_ID.json"
+```
+
+### Recommended directory layout
+
+```
+~/Library/Application Support/yt-sl/
+  cache/
+    videos/          # downloaded .mp4, .wav, transcript .json
+    frames/          # extracted frames per video ID
+      g0047beVND4/
+      dQw4w9WgXcQ/
+  training/
+    labels.jsonl     # auto-collected by yt-sl (for fine-tuning)
 ```
 
 ## Options
