@@ -1,0 +1,3 @@
+oumi[gpu]
+Pillow
+requests

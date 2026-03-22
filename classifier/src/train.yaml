@@ -1,0 +1,38 @@
+model:
+  model_name_or_path: "HuggingFaceTB/SmolVLM-256M-Instruct"
+  torch_dtype: "bfloat16"
+  trust_remote_code: true
+
+training:
+  trainer_type: "TRL_SFT"
+  output_dir: "output/slide-classifier"
+  num_epochs: 3
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16
+  learning_rate: 5.0e-5
+  warmup_ratio: 0.05
+  logging_steps: 10
+  save_steps: 50
+  save_total_limit: 2
+  max_steps: -1
+
+peft:
+  peft_type: "lora"
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.05
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+
+data:
+  train:
+    datasets:
+      - dataset_name: "json"
+        dataset_path: "data/train.jsonl"
+    target_col: "output"
+
+optimization:
+  gradient_checkpointing: true
