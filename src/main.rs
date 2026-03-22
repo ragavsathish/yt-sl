@@ -2,10 +2,12 @@ use base64::{engine::general_purpose, Engine as _};
 use clap::Parser;
 use image::imageops;
 use serde::{Deserialize, Serialize};
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use tokio::sync::Semaphore;
 
 const HASH_SIZE: u32 = 8;
+const MAX_IMAGE_DIM: u32 = 1024;
 
 type R<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -294,13 +296,30 @@ Respond with the extracted text only, no preamble.
 If this image does NOT show a presentation slide (e.g., it shows a speaker, audience, webcam view, \
 or transition screen), respond with exactly: NOT_SLIDE";
 
+fn resize_image(path: &Path) -> R<Vec<u8>> {
+    let img = image::open(path)?;
+    let (w, h) = (img.width(), img.height());
+    let img = if w > MAX_IMAGE_DIM || h > MAX_IMAGE_DIM {
+        img.resize(MAX_IMAGE_DIM, MAX_IMAGE_DIM, imageops::FilterType::Lanczos3)
+    } else {
+        img
+    };
+    let mut buf = Cursor::new(Vec::new());
+    img.write_to(&mut buf, image::ImageFormat::Jpeg)?;
+    Ok(buf.into_inner())
+}
+
 async fn vision_ocr(
     client: &reqwest::Client,
     path: &Path,
     model: &str,
     api_base: &str,
 ) -> R<Option<String>> {
-    let image_data = tokio::fs::read(path).await?;
+    let image_data = tokio::task::spawn_blocking({
+        let path = path.to_path_buf();
+        move || resize_image(&path)
+    })
+    .await??;
     let b64 = general_purpose::STANDARD.encode(&image_data);
     let data_url = format!("data:image/jpeg;base64,{}", b64);
 
