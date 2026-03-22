@@ -1,7 +1,7 @@
 class YtSl < Formula
   desc "Extract presentation slides from video frames using vision LLMs"
   homepage "https://github.com/ragavsathish/yt-sl"
-  url "https://github.com/ragavsathish/yt-sl/archive/refs/tags/v0.1.0.tar.gz"
+  url "https://github.com/ragavsathish/yt-sl/archive/refs/tags/v0.2.0.tar.gz"
   sha256 "PLACEHOLDER"
   license "MIT"
 
