@@ -243,7 +243,15 @@ async fn main() -> R<()> {
         }
     }
     slides.sort_by(|a, b| a.index.cmp(&b.index));
-    eprintln!("[3/4] OCR done: {} slides extracted", slides.len());
+
+    // Text-based dedup: remove slides with duplicate/near-duplicate OCR text
+    let before_text_dedup = slides.len();
+    slides = dedup_by_text(slides);
+    eprintln!(
+        "[3/4] OCR done: {} slides ({} removed as text duplicates)",
+        slides.len(),
+        before_text_dedup - slides.len()
+    );
 
     // Save training data in background
     save_training_data(&training_labels);
@@ -380,6 +388,72 @@ async fn vision_ocr(
     } else {
         Ok(Some(content))
     }
+}
+
+// ── Text-based dedup ────────────────────────────────────────────────────
+
+fn normalize_text(text: &str) -> String {
+    text.split_whitespace()
+        .map(|w| w.to_lowercase())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn text_similarity(a: &str, b: &str) -> f64 {
+    let a = normalize_text(a);
+    let b = normalize_text(b);
+    if a.is_empty() || b.is_empty() {
+        return 0.0;
+    }
+    let (shorter, longer) = if a.len() <= b.len() {
+        (&a, &b)
+    } else {
+        (&b, &a)
+    };
+    // Check if shorter is a substring of longer (partial slide capture)
+    if longer.contains(shorter.as_str()) {
+        return 1.0;
+    }
+    // Word overlap ratio
+    let words_a: std::collections::HashSet<&str> = a.split_whitespace().collect();
+    let words_b: std::collections::HashSet<&str> = b.split_whitespace().collect();
+    let intersection = words_a.intersection(&words_b).count();
+    let union = words_a.union(&words_b).count();
+    if union == 0 {
+        return 0.0;
+    }
+    intersection as f64 / union as f64
+}
+
+fn dedup_by_text(slides: Vec<SlideData>) -> Vec<SlideData> {
+    let mut unique: Vec<SlideData> = Vec::new();
+
+    for slide in slides {
+        // Skip slides with very short text (likely fragments from speaker close-ups)
+        if slide.text.split_whitespace().count() < 3 {
+            let _ = std::fs::remove_file(&slide.image_path);
+            continue;
+        }
+
+        // Find matching existing slide by text similarity
+        let match_idx = unique
+            .iter()
+            .position(|existing| text_similarity(&existing.text, &slide.text) > 0.6);
+
+        match match_idx {
+            Some(idx) => {
+                // Keep the version with more text (cleaner slide capture)
+                if slide.text.len() > unique[idx].text.len() {
+                    let _ = std::fs::remove_file(&unique[idx].image_path);
+                    unique[idx] = slide;
+                } else {
+                    let _ = std::fs::remove_file(&slide.image_path);
+                }
+            }
+            None => unique.push(slide),
+        }
+    }
+    unique
 }
 
 // ── Training data collection ────────────────────────────────────────────
