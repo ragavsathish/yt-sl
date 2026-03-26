@@ -55,7 +55,7 @@ struct Args {
     interval: u64,
 
     /// Hash similarity threshold for dedup (0.0-1.0)
-    #[arg(short = 'T', long, default_value = "0.85")]
+    #[arg(short = 'T', long, default_value = "0.90")]
     threshold: f64,
 
     /// Vision model name
