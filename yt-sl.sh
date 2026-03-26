@@ -74,11 +74,12 @@ if [[ "$FRAME_COUNT" -gt 0 ]]; then
   echo "[3/5] Frames cached: $FRAME_COUNT frames in $FRAMES_DIR"
 else
   echo "[3/5] Extracting frames (scene detection + interval fallback)..."
-  # Scene detection captures slide transitions; interval fallback catches gradual changes
+  # Extract frames and capture their actual timestamps
   ffmpeg -i "$VIDEO_PATH" \
-    -vf "select='gt(scene,0.2)+not(mod(n,25*$INTERVAL))',scale=1024:-1" \
+    -vf "select='gt(scene,0.2)+not(mod(n,25*$INTERVAL))',showinfo,scale=1024:-1" \
     -vsync vfr -q:v 2 \
-    "$FRAMES_DIR/frame_%04d.jpg" 2>/dev/null
+    "$FRAMES_DIR/frame_%04d.jpg" 2>&1 | \
+    grep "pts_time:" | sed 's/.*pts_time:\([0-9.]*\).*/\1/' > "$FRAMES_DIR/timestamps.txt"
   FRAME_COUNT=$(find "$FRAMES_DIR" -name "*.jpg" | wc -l | tr -d ' ')
   echo "  extracted $FRAME_COUNT frames"
 fi

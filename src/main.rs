@@ -173,6 +173,17 @@ async fn main() -> R<()> {
         return Err(format!("No image files found in {}", args.frames).into());
     }
 
+    // Load real timestamps if available (from ffmpeg scene detection)
+    let timestamps_file = Path::new(&args.frames).join("timestamps.txt");
+    let real_timestamps: Vec<f64> = if timestamps_file.exists() {
+        std::fs::read_to_string(&timestamps_file)?
+            .lines()
+            .filter_map(|l| l.trim().parse::<f64>().ok())
+            .collect()
+    } else {
+        vec![]
+    };
+
     let unique_frames = dedup_frames(&frame_paths, args.threshold);
     eprintln!(
         "[2/4] Dedup: {} frames -> {} unique",
@@ -194,7 +205,16 @@ async fn main() -> R<()> {
         let api = args.vision_api.clone();
         let path = frame_path.clone();
         let dest = slides_dir.join(format!("slide_{:04}.jpg", i + 1));
-        let timestamp = i as f64 * args.interval as f64;
+
+        // Use real timestamp if available, otherwise estimate from index
+        let frame_idx = frame_paths
+            .iter()
+            .position(|p| p == frame_path)
+            .unwrap_or(i);
+        let timestamp = real_timestamps
+            .get(frame_idx)
+            .copied()
+            .unwrap_or(i as f64 * args.interval as f64);
 
         handles.push(tokio::spawn(async move {
             let _permit = sem.acquire().await.unwrap();
