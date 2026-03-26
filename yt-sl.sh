@@ -68,13 +68,16 @@ else
     -o "$VIDEO_PATH" "$URL"
 fi
 
-# Extract frames (skip if already done)
+# Extract frames using scene detection (skip if already done)
 FRAME_COUNT=$(find "$FRAMES_DIR" -name "*.jpg" 2>/dev/null | wc -l | tr -d ' ')
 if [[ "$FRAME_COUNT" -gt 0 ]]; then
   echo "[3/5] Frames cached: $FRAME_COUNT frames in $FRAMES_DIR"
 else
-  echo "[3/5] Extracting frames (interval: ${INTERVAL}s)..."
-  ffmpeg -i "$VIDEO_PATH" -vf "fps=1/$INTERVAL" -q:v 2 \
+  echo "[3/5] Extracting frames (scene detection + interval fallback)..."
+  # Scene detection captures slide transitions; interval fallback catches gradual changes
+  ffmpeg -i "$VIDEO_PATH" \
+    -vf "select='gt(scene,0.2)+not(mod(n,25*$INTERVAL))',scale=1024:-1" \
+    -vsync vfr -q:v 2 \
     "$FRAMES_DIR/frame_%04d.jpg" 2>/dev/null
   FRAME_COUNT=$(find "$FRAMES_DIR" -name "*.jpg" | wc -l | tr -d ' ')
   echo "  extracted $FRAME_COUNT frames"
