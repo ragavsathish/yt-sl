@@ -184,7 +184,37 @@ async fn main() -> R<()> {
         vec![]
     };
 
-    let unique_frames = dedup_frames(&frame_paths, args.threshold);
+    // Detect slide region — try several frames to find one with a visible stage layout
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()?;
+
+    // Sample several frames and pick the tightest slide region (smallest area = best crop)
+    let mut slide_region = None;
+    let mut best_area = f64::MAX;
+    let sample_count = 8;
+    let step = frame_paths.len().max(1) / sample_count.max(1);
+    for i in 0..sample_count {
+        let idx = (i * step + step / 2).min(frame_paths.len() - 1);
+        if let Ok(Some(region)) =
+            detect_slide_region(&client, &frame_paths[idx], &args.model, &args.vision_api).await
+        {
+            let area = region.w_pct * region.h_pct;
+            if area < best_area && (region.w_pct < 85.0 || region.h_pct < 85.0) {
+                best_area = area;
+                slide_region = Some(region);
+            }
+        }
+    }
+    match &slide_region {
+        Some(r) => eprintln!(
+            "  slide region: {}%,{}% {}%x{}%",
+            r.x_pct as u32, r.y_pct as u32, r.w_pct as u32, r.h_pct as u32
+        ),
+        None => eprintln!("  slide region: full frame (could not detect)"),
+    }
+
+    let unique_frames = dedup_frames(&frame_paths, args.threshold, slide_region);
     eprintln!(
         "[2/4] Dedup: {} frames -> {} unique",
         frame_paths.len(),
@@ -192,9 +222,6 @@ async fn main() -> R<()> {
     );
 
     // 3. Vision OCR + classification
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(120))
-        .build()?;
     let sem = std::sync::Arc::new(Semaphore::new(args.concurrency));
     let mut handles = Vec::new();
 
@@ -293,6 +320,118 @@ async fn main() -> R<()> {
     Ok(())
 }
 
+// ── Slide region detection ──────────────────────────────────────────────────
+
+const REGION_PROMPT: &str = "\
+This frame is from a video recording of a presentation. A slide is projected on a screen somewhere in the frame.
+
+Return the bounding box of ONLY the projected slide/screen area as four integers: x y w h
+where x,y is the top-left corner and w,h is width and height, all as percentages (0-100) of the frame dimensions.
+
+Respond with ONLY four numbers separated by spaces, nothing else. Example: 30 5 45 55";
+
+#[derive(Clone, Copy)]
+struct CropRegion {
+    x_pct: f64,
+    y_pct: f64,
+    w_pct: f64,
+    h_pct: f64,
+}
+
+async fn detect_slide_region(
+    client: &reqwest::Client,
+    path: &Path,
+    model: &str,
+    api_base: &str,
+) -> R<Option<CropRegion>> {
+    let image_data = tokio::task::spawn_blocking({
+        let path = path.to_path_buf();
+        move || resize_image(&path)
+    })
+    .await??;
+    let b64 = general_purpose::STANDARD.encode(&image_data);
+    let data_url = format!("data:image/jpeg;base64,{}", b64);
+
+    let request = ChatRequest {
+        model: model.to_string(),
+        messages: vec![ChatMessage {
+            role: "user".to_string(),
+            content: vec![
+                ContentPart::Text {
+                    text: REGION_PROMPT.to_string(),
+                },
+                ContentPart::ImageUrl {
+                    image_url: ImageUrlData { url: data_url },
+                },
+            ],
+        }],
+    };
+
+    let resp: ChatResponse = client
+        .post(format!("{}/chat/completions", api_base))
+        .json(&request)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+
+    let content = resp
+        .choices
+        .first()
+        .map(|c| c.message.content.trim().to_string())
+        .unwrap_or_default();
+
+    // Parse "x y w h" from response
+    let nums: Vec<f64> = content
+        .split_whitespace()
+        .filter_map(|s| {
+            s.trim_matches(|c: char| !c.is_ascii_digit() && c != '.')
+                .parse()
+                .ok()
+        })
+        .collect();
+
+    if nums.len() >= 4 && nums[2] > 10.0 && nums[3] > 10.0 {
+        Ok(Some(CropRegion {
+            x_pct: nums[0].clamp(0.0, 100.0),
+            y_pct: nums[1].clamp(0.0, 100.0),
+            w_pct: nums[2].clamp(10.0, 100.0),
+            h_pct: nums[3].clamp(10.0, 100.0),
+        }))
+    } else {
+        Ok(None)
+    }
+}
+
+fn crop_to_region(path: &Path, region: CropRegion) -> R<image::DynamicImage> {
+    let img = image::open(path)?;
+    let (w, h) = (img.width() as f64, img.height() as f64);
+    let x = (region.x_pct / 100.0 * w) as u32;
+    let y = (region.y_pct / 100.0 * h) as u32;
+    let cw = (region.w_pct / 100.0 * w) as u32;
+    let ch = (region.h_pct / 100.0 * h) as u32;
+    let cw = cw.min(img.width() - x);
+    let ch = ch.min(img.height() - y);
+    Ok(img.crop_imm(x, y, cw, ch))
+}
+
+fn avg_hash_cropped(path: &Path, region: Option<CropRegion>) -> R<u64> {
+    let gray = match region {
+        Some(r) => crop_to_region(path, r)?.to_luma8(),
+        None => image::open(path)?.to_luma8(),
+    };
+    let small = imageops::resize(&gray, HASH_SIZE, HASH_SIZE, imageops::FilterType::Lanczos3);
+    let mean = small.pixels().map(|p| p[0] as u64).sum::<u64>() / (HASH_SIZE * HASH_SIZE) as u64;
+    let mut hash: u64 = 0;
+    for (i, pixel) in small.pixels().enumerate() {
+        if pixel[0] as u64 >= mean {
+            hash |= 1 << i;
+        }
+    }
+    Ok(hash)
+}
+
 // ── Perceptual hash dedup ───────────────────────────────────────────────────
 
 fn avg_hash(path: &Path) -> R<u64> {
@@ -312,16 +451,24 @@ fn hamming_similarity(a: u64, b: u64) -> f64 {
     1.0 - (a ^ b).count_ones() as f64 / 64.0
 }
 
-fn dedup_frames(paths: &[PathBuf], threshold: f64) -> Vec<PathBuf> {
+fn dedup_frames(paths: &[PathBuf], threshold: f64, region: Option<CropRegion>) -> Vec<PathBuf> {
     if paths.is_empty() {
         return vec![];
     }
+
+    let hash_fn = |p: &Path| -> R<u64> {
+        if region.is_some() {
+            avg_hash_cropped(p, region)
+        } else {
+            avg_hash(p)
+        }
+    };
+
     let mut unique = vec![paths[0].clone()];
-    let mut accepted_hashes = vec![avg_hash(&paths[0]).unwrap_or(0)];
+    let mut accepted_hashes = vec![hash_fn(&paths[0]).unwrap_or(0)];
 
     for path in &paths[1..] {
-        if let Ok(hash) = avg_hash(path) {
-            // Compare against ALL accepted frames, not just the last one
+        if let Ok(hash) = hash_fn(path) {
             let is_duplicate = accepted_hashes
                 .iter()
                 .any(|&h| hamming_similarity(h, hash) >= threshold);
