@@ -339,12 +339,13 @@ fn dedup_frames(paths: &[PathBuf], threshold: f64) -> Vec<PathBuf> {
 const VISION_PROMPT: &str = "\
 You are analyzing a frame extracted from a video recording of a presentation.
 
-If a presentation slide is visible ANYWHERE in this image — even if a speaker, audience, \
-or stage is also visible — extract ALL visible text from the slide exactly as written, \
-preserving structure with line breaks. Respond with the extracted text only, no preamble.
+If a presentation slide is visible in this image — even partially alongside a speaker — \
+extract ALL readable text from the slide, preserving structure with line breaks. \
+Respond with the extracted text only, no preamble.
 
-Only respond NOT_SLIDE if there is NO slide content visible at all (e.g., only a speaker \
-with no slide behind them, only the audience, or a blank/transition screen).";
+Only respond NOT_SLIDE if there is truly NO readable slide text visible (e.g., only a \
+speaker with no text behind them, only the audience, or a blank screen). A few blurry \
+or partially visible words do NOT count as readable text.";
 
 fn resize_image(path: &Path) -> R<Vec<u8>> {
     let img = image::open(path)?;
@@ -450,7 +451,7 @@ fn dedup_by_text(slides: Vec<SlideData>) -> Vec<SlideData> {
 
     for slide in slides {
         // Skip slides with very short text (likely fragments from speaker close-ups)
-        if slide.text.split_whitespace().count() < 3 {
+        if slide.text.split_whitespace().count() < 5 {
             let _ = std::fs::remove_file(&slide.image_path);
             continue;
         }
